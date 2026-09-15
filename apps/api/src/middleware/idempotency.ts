@@ -61,13 +61,14 @@ export function idempotent(options: { required?: boolean } = {}): RequestHandler
       const originalJson = res.json.bind(res);
       res.json = ((payload: unknown) => {
         const statusCode = res.statusCode;
-        if (statusCode < 500) {
+        if (statusCode < 400) {
           IdempotencyKeyModel.updateOne(
             { organizationId: ctx.organizationId, key },
             { $set: { status: 'completed', statusCode, responseBody: payload } },
           ).catch(() => undefined);
         } else {
-          // Allow the client to retry a server failure with the same key.
+          // A failed request created nothing, so release the key: the client may fix the input
+          // (validation / business-rule errors) or simply retry (server errors) with the same key.
           IdempotencyKeyModel.deleteOne({ organizationId: ctx.organizationId, key }).catch(() => undefined);
         }
         return originalJson(payload);

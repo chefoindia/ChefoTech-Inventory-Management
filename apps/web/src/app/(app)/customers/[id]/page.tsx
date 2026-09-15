@@ -119,7 +119,7 @@ function CustomerPrescriptions({ id }: { id: string }) {
   const rx = usePrescriptions({ page, customerId: id });
   const canManage = usePermission('prescriptions.manage');
   const columns: Column<PrescriptionDto>[] = [
-    { key: 'doctor', header: 'Doctor', cell: (p) => <div><div className="font-medium">Dr {p.doctorName}</div><div className="text-[12px] text-fg-subtle">{p.hospital || p.doctorRegNo}</div></div> },
+    { key: 'doctor', header: 'Doctor', cell: (p) => <div><div className="font-medium">{p.doctorName}</div><div className="text-[12px] text-fg-subtle">{p.hospital || p.doctorRegNo}</div></div> },
     { key: 'date', header: 'Date', cell: (p) => formatDate(p.prescriptionDate) },
     { key: 'valid', header: 'Valid until', cell: (p) => p.validUntil ? formatDate(p.validUntil) : '—' },
     { key: 'items', header: 'Medicines', cell: (p) => p.items.map((i) => i.medicine).join(', ') || `${p.files.length} file(s)` },

@@ -19,7 +19,7 @@ export function toUnitDto(u: UnitDoc): UnitDto {
   };
 }
 
-export async function seedDefaultUnits(organizationId: Types.ObjectId, session: ClientSession): Promise<void> {
+export async function seedDefaultUnits(organizationId: Types.ObjectId, session?: ClientSession): Promise<void> {
   await UnitModel.create(
     DEFAULT_UNITS.map((u) => ({
       organizationId,
@@ -33,7 +33,14 @@ export async function seedDefaultUnits(organizationId: Types.ObjectId, session: 
   );
 }
 
+/** Organizations created before unit seeding existed get the defaults on first use. */
+async function ensureUnits(ctx: RequestContext): Promise<void> {
+  const count = await UnitModel.countDocuments(orgFilter<UnitDoc>(ctx, {}));
+  if (count === 0) await seedDefaultUnits(ctx.organizationId, undefined);
+}
+
 export async function listUnits(ctx: RequestContext, includeInactive = false) {
+  await ensureUnits(ctx);
   const units = await UnitModel.find(orgFilter<UnitDoc>(ctx, includeInactive ? {} : { status: 'active' }))
     .sort({ isSystem: -1, name: 1 })
     .lean<UnitDoc[]>();

@@ -26,12 +26,18 @@ export function FormField({
   const hintId = hint ? `${htmlFor}-hint` : undefined;
   const errorId = error ? `${htmlFor}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
-  const control = React.cloneElement(children, {
+  const injected = {
     id: htmlFor,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': describedBy,
     'aria-required': required || undefined,
-  });
+  };
+  const render = children.props.render;
+  // react-hook-form <Controller> renders the real control through `render`; inject into that element instead.
+  const control =
+    typeof render === 'function'
+      ? React.cloneElement(children, { render: (...args: unknown[]) => React.cloneElement((render as (...a: unknown[]) => React.ReactElement<Record<string, unknown>>)(...args), injected) })
+      : React.cloneElement(children, injected);
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <Label htmlFor={htmlFor}>

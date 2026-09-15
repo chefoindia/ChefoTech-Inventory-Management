@@ -243,7 +243,8 @@ export default function PosPage() {
         },
         onError: (err) => {
           toast.error(errorMessage(err));
-          if (err instanceof ApiError && err.code === 'IDEMPOTENCY_MISMATCH') setIdemKey(newIdempotencyKey());
+          // The failed attempt created nothing; a corrected retry is a new request and needs a fresh key.
+          if (!(err instanceof ApiError) || err.status !== 409) setIdemKey(newIdempotencyKey());
         },
       },
     );
@@ -412,7 +413,7 @@ export default function PosPage() {
                 {header.customerId ? (
                   <div className="mt-2 space-y-1">
                     {(prescriptions.data?.items ?? []).map((rx) => (
-                      <label key={rx.id} className="flex items-center gap-2"><input type="checkbox" className="h-3.5 w-3.5 accent-primary-600" checked={header.prescriptionIds.includes(rx.id)} onChange={(e) => setHeader((h) => ({ ...h, prescriptionIds: e.target.checked ? [...h.prescriptionIds, rx.id] : h.prescriptionIds.filter((x) => x !== rx.id), doctorName: h.doctorName || rx.doctorName }))} /> Dr {rx.doctorName} · {formatDate(rx.prescriptionDate)}</label>
+                      <label key={rx.id} className="flex items-center gap-2"><input type="checkbox" className="h-3.5 w-3.5 accent-primary-600" checked={header.prescriptionIds.includes(rx.id)} onChange={(e) => setHeader((h) => ({ ...h, prescriptionIds: e.target.checked ? [...h.prescriptionIds, rx.id] : h.prescriptionIds.filter((x) => x !== rx.id), doctorName: h.doctorName || rx.doctorName }))} /> {rx.doctorName} · {formatDate(rx.prescriptionDate)}</label>
                     ))}
                     <Link href={`/prescriptions?new=1&customerId=${header.customerId}`} className="inline-flex items-center gap-1 text-primary-700 hover:underline"><Plus className="h-3 w-3" /> Add prescription</Link>
                   </div>

@@ -34,7 +34,7 @@ export default function PrescriptionDetailPage({ params }: { params: Promise<{ i
   };
   return (
     <>
-      <PageHeader title={`Prescription · Dr ${p.doctorName}`} description={<span className="flex items-center gap-2">For <Link href={`/customers/${p.customerId}`} className="text-primary-700 hover:underline">{p.customerName}</Link> · {formatDate(p.prescriptionDate)} <DocStatusBadge status={p.status} /></span>} actions={canManage ? <>
+      <PageHeader title={`Prescription · ${p.doctorName}`} description={<span className="flex items-center gap-2">For <Link href={`/customers/${p.customerId}`} className="text-primary-700 hover:underline">{p.customerName}</Link> · {formatDate(p.prescriptionDate)} <DocStatusBadge status={p.status} /></span>} actions={canManage ? <>
         <Select className="h-8 w-36" value={p.status} onChange={(e) => update.mutate({ id: p.id, input: { status: e.target.value as typeof p.status } }, { onSuccess: () => toast.success('Status updated'), onError: (err) => toast.error(errorMessage(err)) })} aria-label="Status"><option value="active">Active</option><option value="used">Used</option><option value="expired">Expired</option><option value="archived">Archived</option></Select>
         <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-3.5 w-3.5" /> Edit</Button>
       </> : null} />

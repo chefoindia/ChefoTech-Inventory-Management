@@ -17,11 +17,18 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 5. Permissions live in `packages/shared/src/permissions.ts`; guard routes with `requirePermission`. Non-owners can only grant permissions they hold.
 6. Money/stock documents: create inside `withTransaction`, reserve numbers with `nextDocumentNumber` in the same transaction, guard the endpoint with `idempotent({ required: true })`, and write `audit()` in the same session.
 7. Historical documents snapshot prices/names/units; never recompute old invoices from current product data.
-8. No fake UI: unimplemented modules appear disabled in the sidebar with the phase they ship in. Do not add placeholder pages with dummy numbers.
+8. No fake UI: every sidebar module is backed by real API data. Do not add placeholder pages with dummy numbers; unfinished work is tracked in `docs/PHASES.md`.
 9. Every list view has loading, empty and error states; every form maps server field errors via `applyServerErrors`.
 
 ## Adding a module (pattern)
 `apps/api/src/modules/<name>/{<name>.service.ts,<name>.routes.ts}` → mount in `apps/api/src/app.ts` → schemas/types in `packages/shared/src/schemas` and `types/api.ts` → hooks in `apps/web/src/features/<name>/api.ts` → pages under `apps/web/src/app/(app)/`. Add tests in `apps/api/src/tests/` using `registerTenant`/`addMember` helpers.
+
+## Frontend conventions
+- Feature hooks live in `apps/web/src/features/<module>/api.ts`; pages compose them with the primitives in `apps/web/src/components/ui` (`DataTable`, `Combobox` + pickers, `MoneyInput` in paise, `PercentInput` in bps, `PaymentLines`, `TotalsPanel`, `CustomFieldsForm`, `DocumentActions`).
+- Financial POSTs send an `Idempotency-Key` from `newIdempotencyKey()`; rotate it after a failed attempt (the API also releases keys on 4xx/5xx).
+- Pages that read `useSearchParams` wrap their body in `<Suspense>`.
+- `FormField` injects `id`/aria attributes into its child, including through a react-hook-form `Controller`.
+- `react-hooks/set-state-in-effect` is a warning, not an error: dialogs legitimately reset local state when they open.
 
 ## Environment
 `apps/api/.env` (git-ignored) holds the Atlas URI (non-SRV form because the local resolver refuses SRV; set `DNS_SERVERS=8.8.8.8` to use the `mongodb+srv://` form), Brevo key (console email provider is used when empty or in tests), Cloudinary keys, optional Firebase service account for future phone OTP.

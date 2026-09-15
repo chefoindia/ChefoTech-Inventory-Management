@@ -2,7 +2,7 @@
 
 A multi-tenant, multi-outlet operating platform for pharmacies: products with batches and expiry, keyboard-first POS, purchases and GRN, credit (Baki), returns, transfers, prescriptions, documents, reports and analytics.
 
-Status: **Phase 0 complete** (architecture, auth, organizations, outlets, users, roles/RBAC, audit, idempotency, design system, app shell, settings, marketing page). See [docs/PHASES.md](docs/PHASES.md) for the roadmap and what each phase delivers.
+Status: **Phases 0–9 complete, Phase 10 (hardening) in progress.** Every module in the sidebar is live end to end: catalogue, inventory with batches and FEFO, purchases and GRN, keyboard-first POS with credit and held bills, returns and transfers, prescriptions, PDF documents with a drag-and-drop template designer, invoice email, import/export, 33 reports, dashboard, notifications and plans. See [docs/PHASES.md](docs/PHASES.md) for what each phase delivers and what remains.
 
 ## Monorepo
 

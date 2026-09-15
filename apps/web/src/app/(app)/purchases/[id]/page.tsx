@@ -53,7 +53,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
   if (purchase.isPending) return <Spinner />;
   if (purchase.isError) return <ErrorState message={errorMessage(purchase.error)} onRetry={() => purchase.refetch()} />;
   const p = purchase.data;
-  const receivable = (p.status === 'confirmed' || p.status === 'partially_received' || p.status === 'draft') && p.lines.some((l) => l.receivedBase < l.qtyBase + l.freeQtyBase);
+  const receivable = (p.status === 'confirmed' || p.status === 'partially_received' || p.status === 'draft') && p.lines.some((l) => l.receivedBase + l.damagedBase < l.qtyBase);
 
   return (
     <>
@@ -81,13 +81,13 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
               <THead><TR><TH>Item</TH><TH>Batch / Exp</TH><TH numeric>Qty</TH><TH numeric>Received</TH>{canCost ? <><TH numeric>Rate</TH><TH numeric>Disc</TH></> : null}<TH numeric>MRP</TH><TH numeric>GST</TH>{canCost ? <TH numeric>Total</TH> : null}</TR></THead>
               <TBody>
                 {p.lines.map((l) => {
-                  const expected = l.qtyBase + l.freeQtyBase;
+                  const expected = l.qtyBase;
                   return (
                     <TR key={l.lineId}>
                       <TD><Link href={`/products/${l.productId}`} className="font-medium hover:underline">{l.productName}</Link><div className="text-[12px] text-fg-subtle">{l.packLabel}{l.hsnCode ? ` · HSN ${l.hsnCode}` : ''}{l.schemeNote ? ` · ${l.schemeNote}` : ''}</div></TD>
                       <TD><span className="font-mono text-[12px]">{l.batchNumber}</span><div className="text-[12px] text-fg-subtle">{formatDate(l.expiryDate, { month: 'short', year: '2-digit' })}</div></TD>
                       <TD numeric>{l.qty} {l.unitName}{l.freeQty ? <div className="text-[11px] text-success-700">+{l.freeQty} free</div> : null}</TD>
-                      <TD numeric><span className={l.receivedBase >= expected ? 'text-success-700' : l.receivedBase > 0 ? 'text-warning-700' : 'text-fg-subtle'}>{l.receivedBase}/{expected}</span>{l.damagedBase ? <div className="text-[11px] text-danger-600">{l.damagedBase} damaged</div> : null}</TD>
+                      <TD numeric><span className={l.receivedBase >= expected ? 'text-success-700' : l.receivedBase > 0 ? 'text-warning-700' : 'text-fg-subtle'}>{l.receivedBase}/{expected}</span>{l.freeQtyBase ? <div className="text-[11px] text-success-700">+{l.freeQtyBase} free</div> : null}{l.damagedBase ? <div className="text-[11px] text-danger-600">{l.damagedBase} damaged</div> : null}</TD>
                       {canCost ? <><TD numeric>{money(l.purchasePriceMinor)}</TD><TD numeric>{l.discountMinor ? money(l.discountMinor) : l.discountBps ? pct(l.discountBps) : '—'}</TD></> : null}
                       <TD numeric>{money(l.mrpMinor)}<div className="text-[11px] text-fg-subtle">SP {money(l.sellingPriceMinor)}</div></TD>
                       <TD numeric>{pct(l.taxRateBps)}</TD>
@@ -145,7 +145,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
 function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: PurchaseDto; open: boolean; onOpenChange: (o: boolean) => void; onDone: (id: string) => void }) {
   const create = useCreateGrn();
   const canApprove = usePermission('purchases.approveGrn');
-  const pendingLines = purchase.lines.filter((l) => l.receivedBase < l.qtyBase + l.freeQtyBase);
+  const pendingLines = purchase.lines.filter((l) => l.receivedBase + l.damagedBase < l.qtyBase);
   const [rows, setRows] = useState<Record<string, { receivedQty: number; freeQty: number; damagedQty: number; batchNumber: string; expiryDate: string; mrpMinor: number | null; sellingPriceMinor: number | null; note: string }>>({});
   const [receivedDate, setReceivedDate] = useState(dateInput(new Date()));
   const [confirm, setConfirm] = useState(true);
@@ -154,10 +154,10 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
   const init = () => {
     const r: typeof rows = {};
     for (const l of pendingLines) {
-      const remainingBase = l.qtyBase + l.freeQtyBase - l.receivedBase;
-      const remainingUnits = remainingBase / l.factorToBase;
-      const free = Math.min(l.freeQty, remainingUnits);
-      r[l.lineId] = { receivedQty: Math.max(remainingUnits - free, 0), freeQty: free, damagedQty: 0, batchNumber: l.batchNumber, expiryDate: dateInput(l.expiryDate), mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, note: '' };
+      const remainingUnits = (l.qtyBase - l.receivedBase - l.damagedBase) / l.factorToBase;
+      // free goods are counted separately from the paid quantity; assume they arrive with the first receipt
+      const free = l.receivedBase === 0 ? l.freeQty : 0;
+      r[l.lineId] = { receivedQty: Math.max(remainingUnits, 0), freeQty: free, damagedQty: 0, batchNumber: l.batchNumber, expiryDate: dateInput(l.expiryDate), mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, note: '' };
     }
     setRows(r);
     setKey(newIdempotencyKey());
@@ -185,7 +185,7 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
                 return (
                   <tr key={l.lineId}>
                     <td className="py-1.5 pr-2"><div className="font-medium">{l.productName}</div><div className="text-[11px] text-fg-subtle">{l.unitName} · ordered {l.qty}{l.freeQty ? ` + ${l.freeQty} free` : ''}</div></td>
-                    <td className="py-1.5 pr-2 text-right tabular">{(l.qtyBase + l.freeQtyBase - l.receivedBase) / l.factorToBase}</td>
+                    <td className="py-1.5 pr-2 text-right tabular">{(l.qtyBase - l.receivedBase - l.damagedBase) / l.factorToBase}</td>
                     <td className="py-1.5 pr-2"><Input type="number" min={0} className="h-8 w-20 text-right" value={r.receivedQty} onChange={(e) => set({ receivedQty: Number(e.target.value) || 0 })} aria-label="Received quantity" /></td>
                     <td className="py-1.5 pr-2"><Input type="number" min={0} className="h-8 w-16 text-right" value={r.freeQty} onChange={(e) => set({ freeQty: Number(e.target.value) || 0 })} aria-label="Free quantity" /></td>
                     <td className="py-1.5 pr-2"><Input type="number" min={0} className="h-8 w-16 text-right" value={r.damagedQty} onChange={(e) => set({ damagedQty: Number(e.target.value) || 0 })} aria-label="Damaged quantity" /></td>

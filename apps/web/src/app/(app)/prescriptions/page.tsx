@@ -33,7 +33,7 @@ function PrescriptionsInner() {
   useEffect(() => { if (params.get('new') === '1') setDialogOpen(true); }, [params]);
   const columns: Column<PrescriptionDto>[] = [
     { key: 'customer', header: 'Customer', cell: (p) => <div><div className="font-medium">{p.customerName}</div><div className="text-[12px] text-fg-subtle">{p.customerPhone}</div></div> },
-    { key: 'doctor', header: 'Doctor', cell: (p) => <div><div>Dr {p.doctorName}</div><div className="text-[12px] text-fg-subtle">{p.hospital || p.doctorRegNo || '—'}</div></div> },
+    { key: 'doctor', header: 'Doctor', cell: (p) => <div><div>{p.doctorName}</div><div className="text-[12px] text-fg-subtle">{p.hospital || p.doctorRegNo || '—'}</div></div> },
     { key: 'date', header: 'Date', cell: (p) => formatDate(p.prescriptionDate) },
     { key: 'valid', header: 'Valid until', cell: (p) => p.validUntil ? formatDate(p.validUntil) : '—' },
     { key: 'items', header: 'Medicines', cell: (p) => <span className="line-clamp-1">{p.items.map((i) => i.medicine).join(', ') || `${p.files.length} file(s)`}</span> },

@@ -111,7 +111,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             <CardContent>
               {s.customerId ? <Link href={`/customers/${s.customerId}`} className="font-medium hover:underline">{s.customer.name}</Link> : <div className="font-medium">{s.customer.name || 'Walk-in customer'}</div>}
               <div className="text-[13px] text-fg-subtle">{[s.customer.phone, s.customer.email, s.customer.gstin].filter(Boolean).join(' · ')}</div>
-              {s.doctorName || s.prescriptionIds.length ? <div className="mt-2 flex items-center gap-1.5 text-[13px]"><FileText className="h-3.5 w-3.5 text-fg-subtle" /> Dr {s.doctorName || '—'}{s.prescriptionIds.length ? <> · {s.prescriptionIds.map((p) => <Link key={p} href={`/prescriptions/${p}`} className="text-primary-700 hover:underline">prescription</Link>)}</> : null}</div> : null}
+              {s.doctorName || s.prescriptionIds.length ? <div className="mt-2 flex items-center gap-1.5 text-[13px]"><FileText className="h-3.5 w-3.5 text-fg-subtle" /> {s.doctorName || '—'}{s.prescriptionIds.length ? <> · {s.prescriptionIds.map((p) => <Link key={p} href={`/prescriptions/${p}`} className="text-primary-700 hover:underline">prescription</Link>)}</> : null}</div> : null}
             </CardContent>
           </Card>
           <Card>

@@ -109,11 +109,24 @@ export function ProductForm({ product, onSaved, onCancel }: { product: ProductDt
   const watchedUnits = form.watch('units');
   const unitName = (id: string) => unitList.find((u) => u.id === id)?.name ?? '—';
 
-  // keep the base unit row pinned with factor 1
+  // keep exactly one base-unit row (factor 1); switching the base unit rewrites that row instead of adding another
+  const prevBase = React.useRef(baseUnitId);
   React.useEffect(() => {
-    const idx = watchedUnits.findIndex((u) => u.unitId === baseUnitId);
-    if (baseUnitId && idx === -1) unitsArr.prepend({ unitId: baseUnitId, factorToBase: 1, isDefaultPurchase: watchedUnits.length === 0, isDefaultSale: watchedUnits.length === 0, allowLooseSale: true });
-    else if (idx >= 0 && watchedUnits[idx]!.factorToBase !== 1) form.setValue(`units.${idx}.factorToBase`, 1);
+    if (!baseUnitId) return;
+    const units = form.getValues('units');
+    const already = units.findIndex((u) => u.unitId === baseUnitId);
+    const oldIdx = units.findIndex((u) => u.unitId === prevBase.current);
+    if (already >= 0) {
+      if (units[already]!.factorToBase !== 1) form.setValue(`units.${already}.factorToBase`, 1);
+      if (oldIdx >= 0 && oldIdx !== already && units[oldIdx]!.factorToBase === 1) unitsArr.remove(oldIdx);
+    } else if (oldIdx >= 0) {
+      form.setValue(`units.${oldIdx}.unitId`, baseUnitId);
+      form.setValue(`units.${oldIdx}.factorToBase`, 1);
+    } else {
+      unitsArr.prepend({ unitId: baseUnitId, factorToBase: 1, isDefaultPurchase: units.length === 0, isDefaultSale: units.length === 0, allowLooseSale: true });
+    }
+    if (!units.some((u) => u.unitId === form.getValues('pricingUnitId')) && form.getValues('pricingUnitId') === prevBase.current) form.setValue('pricingUnitId', baseUnitId);
+    prevBase.current = baseUnitId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseUnitId]);
 

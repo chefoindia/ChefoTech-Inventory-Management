@@ -75,7 +75,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
   const [notes, setNotes] = React.useState(purchase?.notes ?? '');
   const [customFields, setCustomFields] = React.useState<Record<string, unknown>>(purchase?.customFields ?? {});
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [idem] = React.useState(newIdempotencyKey);
+  const [idem, setIdem] = React.useState(newIdempotencyKey);
   const pending = create.isPending || update.isPending;
 
   React.useEffect(() => {
@@ -140,7 +140,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
       return;
     }
     setErrors({});
-    const fail = (err: unknown) => toast.error(errorMessage(err));
+    const fail = (err: unknown) => { toast.error(errorMessage(err)); setIdem(newIdempotencyKey()); };
     if (purchase) {
       const { receiveNow: _receiveNow, payments: _payments, ...rest } = parsed.data;
       void _receiveNow; void _payments;
