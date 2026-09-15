@@ -1,0 +1,57 @@
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+import { Label } from './input';
+
+/**
+ * Wires label, hint and error to a control via aria attributes. The child control receives
+ * `id`, `aria-invalid` and `aria-describedby`.
+ */
+export function FormField({
+  label,
+  htmlFor,
+  hint,
+  error,
+  required,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: React.ReactNode;
+  error?: string;
+  required?: boolean;
+  className?: string;
+  children: React.ReactElement<Record<string, unknown>>;
+}) {
+  const hintId = hint ? `${htmlFor}-hint` : undefined;
+  const errorId = error ? `${htmlFor}-error` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
+  const control = React.cloneElement(children, {
+    id: htmlFor,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': describedBy,
+    'aria-required': required || undefined,
+  });
+  return (
+    <div className={cn('flex flex-col gap-1.5', className)}>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="ml-0.5 text-danger-600" aria-hidden>*</span> : null}
+      </Label>
+      {control}
+      {error ? (
+        <p id={errorId} className="text-[12px] text-danger-600">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={hintId} className="text-[12px] text-fg-subtle">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function FormGrid({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2', className)} {...props} />;
+}

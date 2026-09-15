@@ -1,0 +1,32 @@
+{
+  "name": "pharmaos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PharmaOS - Pharmacy Management & Operations Platform (monorepo)",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "dev:api": "pnpm --filter @pharmaos/api dev",
+    "dev:web": "pnpm --filter @pharmaos/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "mongodb-memory-server",
+      "esbuild",
+      "unrs-resolver",
+      "sharp"
+    ]
+  }
+}
