@@ -19,37 +19,42 @@ export interface OutletScopedDoc extends OrgScopedDoc {
 type AnyModel = Model<any, any, any, any, any, any>;
 type DocOf<M extends AnyModel> = NonNullable<Awaited<ReturnType<M['findOne']>>>;
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !(v instanceof Types.ObjectId) && !(v instanceof RegExp);
+}
+
 /**
  * `mongoose.set('sanitizeFilter', true)` is on globally: any object value in a filter that was
  * not explicitly marked trusted is treated as a literal (so `{ $gt: '' }` from a request can
  * never become an operator). Server-built filters mark their operator values trusted here.
  * All request input is zod-validated to scalars before it reaches a filter, so this helper is
- * only ever called with values the server constructed.
+ * only ever called with values the server constructed. `$and` / `$or` / `$nor` arrays recurse.
  */
 export function trustedFilter<T>(filter: QueryFilter<T>): QueryFilter<T> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(filter as Record<string, unknown>)) {
-    out[key] =
-      value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date) && !(value instanceof Types.ObjectId)
-        ? mongoose.trusted(value as Record<string, unknown>)
-        : value;
+    if (Array.isArray(value) && key.startsWith('$')) {
+      out[key] = value.map((v) => (isPlainObject(v) ? trustedFilter(v as QueryFilter<T>) : v));
+      continue;
+    }
+    out[key] = isPlainObject(value) ? mongoose.trusted(value) : value;
   }
   return out as QueryFilter<T>;
 }
 
 export function orgFilter<T extends OrgScopedDoc>(
   ctx: Pick<RequestContext, 'organizationId'>,
-  filter: QueryFilter<T> = {} as QueryFilter<T>,
+  filter: Record<string, unknown> = {},
 ): QueryFilter<T> {
-  return trustedFilter<T>({ ...filter, organizationId: ctx.organizationId } as QueryFilter<T>);
+  return trustedFilter<T>({ ...filter, organizationId: ctx.organizationId } as unknown as QueryFilter<T>);
 }
 
 export function outletFilter<T extends OutletScopedDoc>(
   ctx: Pick<RequestContext, 'organizationId' | 'outletId'>,
-  filter: QueryFilter<T> = {} as QueryFilter<T>,
+  filter: Record<string, unknown> = {},
 ): QueryFilter<T> {
   if (!ctx.outletId) throw new ForbiddenError('An active outlet is required for this action');
-  return trustedFilter<T>({ ...filter, organizationId: ctx.organizationId, outletId: ctx.outletId } as QueryFilter<T>);
+  return trustedFilter<T>({ ...filter, organizationId: ctx.organizationId, outletId: ctx.outletId } as unknown as QueryFilter<T>);
 }
 
 /** Find one org-scoped document by id or throw NotFound (never reveals other tenants' existence). */

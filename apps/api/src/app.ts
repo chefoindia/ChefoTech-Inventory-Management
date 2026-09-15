@@ -14,6 +14,14 @@ import { outletsRouter } from '@/modules/outlets/outlets.routes';
 import { usersRouter } from '@/modules/users/users.routes';
 import { rolesRouter } from '@/modules/roles/roles.routes';
 import { auditRouter } from '@/modules/audit/audit.routes';
+import { customFieldsRouter } from '@/modules/custom-fields/custom-fields.routes';
+import { attachmentsRouter } from '@/modules/attachments/attachments.routes';
+import { unitsRouter, categoriesRouter, productsRouter } from '@/modules/catalog/catalog.routes';
+import { suppliersRouter, customersRouter } from '@/modules/parties/parties.routes';
+import { inventoryRouter, transfersRouter } from '@/modules/inventory/inventory.routes';
+import { purchasesRouter, grnRouter, purchaseReturnsRouter } from '@/modules/purchases/purchases.routes';
+import { customerPaymentsRouter, supplierPaymentsRouter } from '@/modules/parties/payments.routes';
+import { salesRouter, salesReturnsRouter } from '@/modules/sales/sales.routes';
 
 /**
  * Middleware order: request-id → logging → security headers → CORS → body parsing → cookies →
@@ -51,6 +59,22 @@ export function createApp(): Express {
   api.use('/users', usersRouter);
   api.use('/roles', rolesRouter);
   api.use('/audit-logs', auditRouter);
+  api.use('/custom-fields', customFieldsRouter);
+  api.use('/attachments', attachmentsRouter);
+  api.use('/units', unitsRouter);
+  api.use('/categories', categoriesRouter);
+  api.use('/products', productsRouter);
+  api.use('/suppliers', suppliersRouter);
+  api.use('/customers', customersRouter);
+  api.use('/inventory', inventoryRouter);
+  api.use('/transfers', transfersRouter);
+  api.use('/purchases', purchasesRouter);
+  api.use('/grns', grnRouter);
+  api.use('/purchase-returns', purchaseReturnsRouter);
+  api.use('/customer-payments', customerPaymentsRouter);
+  api.use('/supplier-payments', supplierPaymentsRouter);
+  api.use('/sales', salesRouter);
+  api.use('/sales-returns', salesReturnsRouter);
   app.use(env.API_BASE_PATH, api);
 
   app.use(notFoundHandler);

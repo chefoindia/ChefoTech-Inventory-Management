@@ -21,6 +21,7 @@ import { MembershipModel, type MembershipDoc } from '@/models/membership.model';
 import { RoleModel, type RoleDoc } from '@/models/role.model';
 import { SessionModel, type SessionDoc } from '@/models/session.model';
 import { seedSystemRoles } from '@/modules/roles/roles.service';
+import { seedDefaultUnits } from '@/modules/catalog/units.service';
 import { audit } from '@/services/audit.service';
 import { trustedFilter } from '@/lib/scoped';
 import { invalidateAccessCache } from '@/middleware/authenticate';
@@ -142,6 +143,7 @@ export async function registerOrganization(input: RegisterInput, meta: ClientMet
     );
 
     const ownerRole = await seedSystemRoles(orgId, userId, session);
+    await seedDefaultUnits(orgId, session);
 
     const [membership] = await MembershipModel.create(
       [
