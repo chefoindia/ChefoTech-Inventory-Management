@@ -139,6 +139,8 @@ export const api = {
     rawRequest<T>(path, { ...opts, method: 'POST', body }).then((r) => r.data),
   patch: <T>(path: string, body?: unknown, opts: Omit<RequestOptions, 'body' | 'method'> = {}) =>
     rawRequest<T>(path, { ...opts, method: 'PATCH', body }).then((r) => r.data),
+  put: <T>(path: string, body?: unknown, opts: Omit<RequestOptions, 'body' | 'method'> = {}) =>
+    rawRequest<T>(path, { ...opts, method: 'PUT', body }).then((r) => r.data),
   delete: <T = void>(path: string, opts: Omit<RequestOptions, 'method'> = {}) =>
     rawRequest<T>(path, { ...opts, method: 'DELETE' }).then((r) => r.data),
 };

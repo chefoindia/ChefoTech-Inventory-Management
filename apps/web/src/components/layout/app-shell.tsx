@@ -20,15 +20,15 @@ import {
   Menu,
   X,
   Check,
-  Lock,
+  Pill,
 } from 'lucide-react';
 import { cn, initials } from '@/lib/utils';
 import { useSession } from '@/stores/session';
 import { useLogout, useSwitchOrganization } from '@/features/auth/api';
 import { usePermission } from '@/features/auth/permissions';
+import { useUnreadCount } from '@/features/notifications/api';
 import { Logo } from './logo';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,21 +43,21 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string | string[];
-  /** Not yet implemented: rendered disabled with the phase it ships in. */
-  phase?: number;
+  badge?: 'unread';
 }
 
 const NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Sales & POS', href: '/sales', icon: ShoppingCart, permission: 'sales.view', phase: 4 },
-  { label: 'Purchases', href: '/purchases', icon: Truck, permission: 'purchases.view', phase: 3 },
-  { label: 'Inventory', href: '/inventory', icon: Boxes, permission: 'inventory.view', phase: 2 },
-  { label: 'Customers', href: '/customers', icon: Users, permission: 'customers.view', phase: 1 },
-  { label: 'Suppliers', href: '/suppliers', icon: Building2, permission: 'suppliers.view', phase: 1 },
-  { label: 'Prescriptions', href: '/prescriptions', icon: FileText, permission: 'prescriptions.view', phase: 6 },
-  { label: 'Reports', href: '/reports', icon: BarChart3, permission: 'reports.view', phase: 8 },
-  { label: 'Notifications', href: '/notifications', icon: Bell, permission: 'notifications.view', phase: 8 },
-  { label: 'Settings', href: '/settings', icon: Settings, permission: ['settings.view', 'organization.view', 'users.view', 'outlets.view'] },
+  { label: 'Sales & POS', href: '/sales', icon: ShoppingCart, permission: 'sales.view' },
+  { label: 'Purchases', href: '/purchases', icon: Truck, permission: 'purchases.view' },
+  { label: 'Products', href: '/products', icon: Pill, permission: 'products.view' },
+  { label: 'Inventory', href: '/inventory', icon: Boxes, permission: 'inventory.view' },
+  { label: 'Customers', href: '/customers', icon: Users, permission: 'customers.view' },
+  { label: 'Suppliers', href: '/suppliers', icon: Building2, permission: 'suppliers.view' },
+  { label: 'Prescriptions', href: '/prescriptions', icon: FileText, permission: 'prescriptions.view' },
+  { label: 'Reports', href: '/reports', icon: BarChart3, permission: 'reports.view' },
+  { label: 'Notifications', href: '/notifications', icon: Bell, permission: 'notifications.view', badge: 'unread' },
+  { label: 'Settings', href: '/settings', icon: Settings, permission: ['settings.view', 'organization.view', 'users.view', 'outlets.view', 'templates.view', 'notifications.manage'] },
 ];
 
 function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
@@ -67,21 +67,6 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
   const Icon = item.icon;
 
   if (!allowed) return null;
-
-  if (item.phase) {
-    return (
-      <Tooltip content={`Ships in Phase ${item.phase} — not yet available in this build`} side="right">
-        <div
-          aria-disabled
-          className="flex h-9 cursor-not-allowed items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm text-fg-faint"
-        >
-          <Icon className="h-4 w-4" />
-          <span className="flex-1">{item.label}</span>
-          <Lock className="h-3 w-3" aria-hidden />
-        </div>
-      </Tooltip>
-    );
-  }
 
   return (
     <Link
@@ -94,9 +79,17 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
       )}
     >
       <Icon className={cn('h-4 w-4', active ? 'text-primary-700' : 'text-fg-subtle')} />
-      {item.label}
+      <span className="flex-1">{item.label}</span>
+      {item.badge === 'unread' ? <UnreadBadge /> : null}
     </Link>
   );
+}
+
+function UnreadBadge() {
+  const unread = useUnreadCount();
+  const n = unread.data?.unread ?? 0;
+  if (!n) return null;
+  return <span className="rounded-full bg-primary-600 px-1.5 text-[11px] font-semibold leading-4 text-white" aria-label={`${n} unread`}>{n > 99 ? '99+' : n}</span>;
 }
 
 function OutletSwitcher() {

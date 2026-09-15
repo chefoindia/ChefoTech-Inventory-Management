@@ -10,6 +10,12 @@ const SECTIONS: { label: string; href: string; permission?: string | string[] }[
   { label: 'Outlets', href: '/settings/outlets', permission: 'outlets.view' },
   { label: 'Users', href: '/settings/users', permission: 'users.view' },
   { label: 'Roles & permissions', href: '/settings/roles', permission: ['roles.view', 'users.view'] },
+  { label: 'Categories & units', href: '/settings/catalog', permission: ['products.manageCategories', 'products.view'] },
+  { label: 'Custom fields', href: '/settings/custom-fields', permission: 'settings.customFields' },
+  { label: 'Document templates', href: '/settings/templates', permission: 'templates.view' },
+  { label: 'Notifications', href: '/settings/notifications', permission: ['notifications.manage', 'notifications.view'] },
+  { label: 'Import & export', href: '/settings/data', permission: ['data.import', 'data.export'] },
+  { label: 'Subscription', href: '/settings/subscription', permission: ['organization.manage', 'organization.view'] },
   { label: 'Audit log', href: '/settings/audit', permission: 'audit.view' },
   { label: 'Security', href: '/settings/security' },
 ];

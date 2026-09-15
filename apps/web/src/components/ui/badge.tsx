@@ -48,3 +48,21 @@ export function StatusBadge({ status }: { status: string }) {
     </Badge>
   );
 }
+
+export function PaymentStatusBadge({ status }: { status: string }) {
+  const map: Record<string, BadgeProps['variant']> = { paid: 'success', partial: 'warning', credit: 'danger', unpaid: 'danger' };
+  return (
+    <Badge variant={map[status] ?? 'neutral'} dot>
+      {status === 'credit' ? 'On credit' : status.charAt(0).toUpperCase() + status.slice(1)}
+    </Badge>
+  );
+}
+
+export function DocStatusBadge({ status }: { status: string }) {
+  const map: Record<string, BadgeProps['variant']> = { draft: 'neutral', confirmed: 'info', partially_received: 'warning', received: 'success', cancelled: 'neutral', completed: 'success', held: 'info', pending_approval: 'warning', approved: 'success', rejected: 'danger', requested: 'info', dispatched: 'warning', used: 'neutral', expired: 'danger', validated: 'info', committing: 'warning', committed: 'success', discarded: 'neutral', blocked: 'danger' };
+  return (
+    <Badge variant={map[status] ?? 'neutral'} dot>
+      {status.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())}
+    </Badge>
+  );
+}
