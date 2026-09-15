@@ -37,6 +37,7 @@ import { factorFor, requireOutletId, toBaseQty } from '@/modules/inventory/inven
 import { userRefs, iso, isoNow } from '@/modules/common/refs';
 import { randomToken } from '@/lib/crypto';
 import { events } from '@/lib/events';
+import { linkToSale } from '@/modules/prescriptions/prescriptions.service';
 
 /* ---------------------------------------------------------------- context */
 
@@ -444,6 +445,7 @@ export async function createSale(ctx: RequestContext, input: CreateSaleInput, id
       await CustomerModel.updateOne({ _id: customer._id }, { $set: { lastPurchaseAt: now }, $inc: { totalPurchasesMinor: totals.grandTotalMinor } }, { session });
     }
     if (input.heldSaleId) await SaleModel.deleteOne({ _id: input.heldSaleId, organizationId: ctx.organizationId, status: 'held' }, { session });
+    await linkToSale(ctx, input.prescriptionIds, saleId);
     const overrides = lines.filter((l) => l.priceOverridden).map((l) => l.product.name);
     await audit(ctx, { action: 'sale.created', entityType: 'Sale', entityId: saleId, summary: `Invoice ${number} for ${totals.grandTotalMinor / 100} (${customer?.name ?? 'walk-in'})${credit ? `, credit ${credit / 100}` : ''}`, after: { number, grandTotalMinor: totals.grandTotalMinor, paidMinor: paid, creditMinor: credit, lines: lines.length }, metadata: { idempotencyKey, priceOverrides: overrides } }, session);
     return created!;

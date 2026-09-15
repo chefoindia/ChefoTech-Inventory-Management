@@ -22,6 +22,13 @@ import { inventoryRouter, transfersRouter } from '@/modules/inventory/inventory.
 import { purchasesRouter, grnRouter, purchaseReturnsRouter } from '@/modules/purchases/purchases.routes';
 import { customerPaymentsRouter, supplierPaymentsRouter } from '@/modules/parties/payments.routes';
 import { salesRouter, salesReturnsRouter } from '@/modules/sales/sales.routes';
+import { prescriptionsRouter } from '@/modules/prescriptions/prescriptions.routes';
+import { importsRouter } from '@/modules/imports/import.routes';
+import { exportsRouter } from '@/modules/exports/export.routes';
+import { templatesRouter, documentsRouter } from '@/modules/documents/documents.routes';
+import { registerDocumentEventHandlers } from '@/modules/documents/document-events';
+
+registerDocumentEventHandlers();
 
 /**
  * Middleware order: request-id → logging → security headers → CORS → body parsing → cookies →
@@ -75,6 +82,11 @@ export function createApp(): Express {
   api.use('/supplier-payments', supplierPaymentsRouter);
   api.use('/sales', salesRouter);
   api.use('/sales-returns', salesReturnsRouter);
+  api.use('/prescriptions', prescriptionsRouter);
+  api.use('/imports', importsRouter);
+  api.use('/exports', exportsRouter);
+  api.use('/templates', templatesRouter);
+  api.use('/documents', documentsRouter);
   app.use(env.API_BASE_PATH, api);
 
   app.use(notFoundHandler);
