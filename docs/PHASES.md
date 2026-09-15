@@ -69,5 +69,6 @@ Legend: [ ] not started · [~] in progress · [x] done (with tests)
 ## Phase 10 — Hardening [~]
 - [x] Browser walkthrough of the critical path (product → opening stock → POS sale → invoice PDF → supplier → purchase with receive-now → stock and valuation)
 - [x] Fixes from the walkthrough: lazy unit seeding, idempotency release on failure, label/Controller wiring, base-unit switching in the product form, free-goods display on purchases
-- [ ] Automated end-to-end tests for the critical workflows
+- [x] Automated critical-path test (`apps/api/src/tests/critical-path.test.ts`) mirroring the walkthrough, plus idempotency release and lazy unit seeding tests
+- [ ] Browser-level (Playwright) tests for the POS and purchase screens
 - [ ] Security, performance and index review; accessibility audit

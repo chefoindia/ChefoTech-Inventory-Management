@@ -20,6 +20,11 @@ function buildApp() {
   app.post('/fail', authenticate, idempotent(), (_req, res) => {
     res.status(500).json({ success: false });
   });
+  app.post('/validate', authenticate, idempotent({ required: true }), (req, res) => {
+    if (!req.body.doctor) return res.status(400).json({ success: false, error: { code: 'BUSINESS_RULE', message: 'doctor required' } });
+    counter += 1;
+    return res.status(201).json({ success: true, data: { counter } });
+  });
   app.use(errorHandler);
   return app;
 }
@@ -63,5 +68,21 @@ describe('idempotency middleware', () => {
     const retry = await request(app).post('/fail').set(auth(t.accessToken)).set('Idempotency-Key', key).send({});
     expect(retry.status).toBe(500);
     expect(retry.headers['idempotent-replayed']).toBeUndefined();
+  });
+
+  it('releases the key after a 4xx so a corrected request can reuse it', async () => {
+    const t = await registerTenant();
+    const app = buildApp();
+    const key = 'fix-and-retry-01';
+    const refused = await request(app).post('/validate').set(auth(t.accessToken)).set('Idempotency-Key', key).send({ qty: 1 });
+    expect(refused.status).toBe(400);
+    // Different body, same key: accepted because the failed attempt created nothing.
+    const fixed = await request(app).post('/validate').set(auth(t.accessToken)).set('Idempotency-Key', key).send({ qty: 1, doctor: 'Dr Mehta' });
+    expect(fixed.status).toBe(201);
+    // And the successful one is now sticky: a replay returns the stored response, a change is a mismatch.
+    const replay = await request(app).post('/validate').set(auth(t.accessToken)).set('Idempotency-Key', key).send({ qty: 1, doctor: 'Dr Mehta' });
+    expect(replay.headers['idempotent-replayed']).toBe('true');
+    const mismatch = await request(app).post('/validate').set(auth(t.accessToken)).set('Idempotency-Key', key).send({ qty: 2, doctor: 'Dr Mehta' });
+    expect(mismatch.status).toBe(422);
   });
 });
