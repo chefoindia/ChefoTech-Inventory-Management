@@ -84,6 +84,7 @@ const organizationSchema = new Schema(
         storageMb: { type: Number, default: 2048 },
       },
     },
+    subscriptionHistory: { type: [new Schema({ at: Date, from: String, to: String, by: String }, { _id: false })], default: [] },
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },

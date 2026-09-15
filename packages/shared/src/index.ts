@@ -19,6 +19,7 @@ export * from './schemas/sale';
 export * from './schemas/prescription';
 export * from './schemas/import-export';
 export * from './schemas/document';
+export * from './schemas/analytics';
 export * from './types/api';
 export * from './types/domain';
 export * from './types/inventory';

@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { connectDatabase, disconnectDatabase } from '@/db/connection';
 import { createApp } from '@/app';
+import { startNotificationScheduler, stopNotificationScheduler } from '@/modules/notifications/notification-jobs';
 
 async function main() {
   await connectDatabase();
@@ -11,10 +12,12 @@ async function main() {
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT, basePath: env.API_BASE_PATH, env: env.NODE_ENV }, 'api listening');
+    startNotificationScheduler();
   });
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'shutting down');
+    stopNotificationScheduler();
     server.close(async () => {
       await disconnectDatabase();
       process.exit(0);

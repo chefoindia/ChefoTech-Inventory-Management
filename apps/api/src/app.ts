@@ -27,8 +27,16 @@ import { importsRouter } from '@/modules/imports/import.routes';
 import { exportsRouter } from '@/modules/exports/export.routes';
 import { templatesRouter, documentsRouter } from '@/modules/documents/documents.routes';
 import { registerDocumentEventHandlers } from '@/modules/documents/document-events';
+import { notificationsRouter } from '@/modules/notifications/notifications.routes';
+import { registerNotificationEventHandlers } from '@/modules/notifications/notification-jobs';
+import { reportsRouter } from '@/modules/reports/reports.routes';
+import { dashboardRouter } from '@/modules/dashboard/dashboard.routes';
+import { subscriptionRouter } from '@/modules/subscriptions/subscriptions.routes';
+import { requireFeature } from '@/middleware/entitlement';
+import { authenticate } from '@/middleware/authenticate';
 
 registerDocumentEventHandlers();
+registerNotificationEventHandlers();
 
 /**
  * Middleware order: request-id → logging → security headers → CORS → body parsing → cookies →
@@ -74,7 +82,7 @@ export function createApp(): Express {
   api.use('/suppliers', suppliersRouter);
   api.use('/customers', customersRouter);
   api.use('/inventory', inventoryRouter);
-  api.use('/transfers', transfersRouter);
+  api.use('/transfers', authenticate, requireFeature('stockTransfers'), transfersRouter);
   api.use('/purchases', purchasesRouter);
   api.use('/grns', grnRouter);
   api.use('/purchase-returns', purchaseReturnsRouter);
@@ -83,10 +91,14 @@ export function createApp(): Express {
   api.use('/sales', salesRouter);
   api.use('/sales-returns', salesReturnsRouter);
   api.use('/prescriptions', prescriptionsRouter);
-  api.use('/imports', importsRouter);
-  api.use('/exports', exportsRouter);
-  api.use('/templates', templatesRouter);
+  api.use('/imports', authenticate, requireFeature('importExport'), importsRouter);
+  api.use('/exports', authenticate, requireFeature('importExport'), exportsRouter);
+  api.use('/templates', authenticate, requireFeature('templateDesigner'), templatesRouter);
   api.use('/documents', documentsRouter);
+  api.use('/notifications', notificationsRouter);
+  api.use('/reports', reportsRouter);
+  api.use('/dashboard', dashboardRouter);
+  api.use('/subscription', subscriptionRouter);
   app.use(env.API_BASE_PATH, api);
 
   app.use(notFoundHandler);
