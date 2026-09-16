@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { addressSchema, optionalEmailSchema, optionalPhoneSchema, optionalUrlSchema } from './common';
 import { GSTIN_REGEX, GST_REGISTRATION_TYPES, INDIAN_STATE_CODES, PAN_REGEX } from '../constants/india';
 import { DOCUMENT_TYPES } from '../constants/enums';
+import { attachmentRefSchema } from './attachment';
 
 export const organizationTaxSchema = z.object({
   gstin: z.string().trim().toUpperCase().regex(GSTIN_REGEX, 'Invalid GSTIN').or(z.literal('')).optional(),
@@ -75,5 +76,7 @@ export const updateOrganizationSchema = z.object({
   financialYearStartMonth: z.number().int().min(1).max(12).optional(),
   timezone: z.string().max(64).optional(),
   settings: organizationSettingsPatchSchema.optional(),
+  /** Verified Cloudinary reference (from /attachments/confirm); null removes the logo. */
+  logo: attachmentRefSchema.nullable().optional(),
 });
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;

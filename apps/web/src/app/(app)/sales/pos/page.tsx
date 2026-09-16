@@ -211,6 +211,37 @@ export default function PosPage() {
     setTimeout(() => searchRef.current?.focus(), 0);
   }, []);
 
+  // Offline resilience: the bill being typed survives a refresh, tab crash or connection drop.
+  // Nothing financial happens locally; completing still requires the server (with an idempotency key).
+  const draftKey = `pharmaos.posDraft.${me.user.id}.${outletId ?? 'none'}`;
+  const restored = React.useRef(false);
+  React.useEffect(() => {
+    if (restored.current || !outletId) return;
+    restored.current = true;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { lines: CartLine[]; header: CartHeader; heldId?: string; savedAt: string };
+      if (draft.lines?.length) {
+        setLines(draft.lines);
+        setHeader({ ...emptyHeader, ...draft.header });
+        setHeldId(draft.heldId);
+        toast.info(`Restored the bill you were typing (${draft.lines.length} item${draft.lines.length === 1 ? '' : 's'}).`);
+      }
+    } catch {
+      /* corrupt draft: ignore */
+    }
+  }, [draftKey, outletId]);
+  React.useEffect(() => {
+    if (!restored.current) return;
+    try {
+      if (lines.length === 0) localStorage.removeItem(draftKey);
+      else localStorage.setItem(draftKey, JSON.stringify({ lines, header, heldId, savedAt: new Date().toISOString() }));
+    } catch {
+      /* storage unavailable: drafts simply are not preserved */
+    }
+  }, [lines, header, heldId, draftKey]);
+
   const complete = React.useCallback(() => {
     if (!quote || lines.length === 0 || createSale.isPending) return;
     if (due > 0) return toast.error(`${money(due)} still unpaid. Add a payment or credit.`);

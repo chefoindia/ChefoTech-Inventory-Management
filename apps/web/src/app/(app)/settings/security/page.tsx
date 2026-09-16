@@ -21,10 +21,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableSkeleton, ErrorState } from '@/components/ui/states';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ImageField } from '@/components/ui/image-field';
+import { useAuditLogs } from '@/features/audit/api';
+import { usePermission } from '@/features/auth/permissions';
+import { useMe } from '@/features/auth/api';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 
 function ProfileCard() {
   const me = useSession((s) => s.me)!;
   const update = useUpdateProfile();
+  const { refetch: refetchMe } = useMe(false);
   const form = useForm<UpdateProfileInput>({ resolver: zodResolver(updateProfileSchema), values: { name: me.user.name, phone: me.user.phone ?? '' } });
   const errors = form.formState.errors;
   const onSubmit = form.handleSubmit((values) =>
@@ -51,6 +57,10 @@ function ProfileCard() {
               <Input type="tel" {...form.register('phone')} />
             </FormField>
           </FormGrid>
+          <div className="mt-4">
+            <div className="mb-1.5 text-[13px] font-medium">Profile photo</div>
+            <ImageField value={me.user.avatar ?? null} purpose="userAvatar" entityId={me.user.id} label="Upload photo" shape="round" disabled={update.isPending} onChange={(ref) => update.mutate({ avatar: ref }, { onSuccess: () => { toast.success(ref ? 'Photo updated' : 'Photo removed'); void refetchMe(); }, onError: (err) => toast.error(errorMessage(err)) })} />
+          </div>
         </CardContent>
         <CardFooter>
           <Button type="submit" loading={update.isPending} disabled={!form.formState.isDirty}>
@@ -161,6 +171,25 @@ function SessionsCard() {
   );
 }
 
+function LoginActivityCard() {
+  const canAudit = usePermission('audit.view');
+  const logs = useAuditLogs({ page: 1, pageSize: 10, action: 'auth.login' });
+  const failed = useAuditLogs({ page: 1, pageSize: 5, action: 'auth.login_failed' });
+  if (!canAudit) return null;
+  const rows = [...(logs.data?.items ?? []), ...(failed.data?.items ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 12);
+  return (
+    <Card>
+      <CardHeader><CardTitle>Login activity</CardTitle><CardDescription>Recent sign-ins and failed attempts across the organization (from the audit log).</CardDescription></CardHeader>
+      {logs.isPending ? <TableSkeleton rows={4} cols={3} /> : rows.length === 0 ? <p className="px-5 py-4 text-[13px] text-fg-subtle">No sign-ins recorded yet.</p> : (
+        <Table>
+          <THead><TR><TH>When</TH><TH>User</TH><TH>Event</TH><TH>IP</TH></TR></THead>
+          <TBody>{rows.map((l) => <TR key={l.id}><TD>{formatDateTime(l.createdAt)}</TD><TD>{l.user?.name ?? l.user?.email ?? '—'}</TD><TD>{l.action === 'auth.login' ? <Badge variant="success">Signed in</Badge> : <Badge variant="danger">Failed attempt</Badge>}</TD><TD className="font-mono text-[12px]">{l.ip ?? '—'}</TD></TR>)}</TBody>
+        </Table>
+      )}
+    </Card>
+  );
+}
+
 function describeUserAgent(ua?: string): string {
   if (!ua) return 'Unknown device';
   const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
@@ -176,6 +205,7 @@ export default function SecurityPage() {
         <ProfileCard />
         <PasswordCard />
         <SessionsCard />
+        <LoginActivityCard />
       </div>
     </>
   );

@@ -103,6 +103,12 @@ async function rawRequest<T>(path: string, opts: RequestOptions, retried = false
     });
   } catch (err) {
     if ((err as Error).name === 'AbortError') throw err;
+    // Reads are safe to retry once after a short pause (flaky counter Wi-Fi). Writes are never retried
+    // here: the caller owns the Idempotency-Key and decides whether to resend.
+    if ((opts.method ?? 'GET') === 'GET' && !retried) {
+      await new Promise((r) => setTimeout(r, 800));
+      return rawRequest<T>(path, opts, true);
+    }
     throw new NetworkError();
   }
 

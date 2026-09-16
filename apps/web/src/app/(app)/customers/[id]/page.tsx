@@ -80,7 +80,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
         </TabsContent>
-        {canLedger ? <TabsContent value="ledger"><LedgerTab partyType="customer" partyId={c.id} balanceMinor={c.balanceMinor} /></TabsContent> : null}
+        {canLedger ? <TabsContent value="ledger"><LedgerTab partyType="customer" partyId={c.id} balanceMinor={c.balanceMinor} email={c.email || undefined} /></TabsContent> : null}
         {canSales ? <TabsContent value="invoices"><CustomerInvoices id={c.id} /></TabsContent> : null}
         {canRx ? <TabsContent value="prescriptions"><CustomerPrescriptions id={c.id} /></TabsContent> : null}
         <TabsContent value="documents">

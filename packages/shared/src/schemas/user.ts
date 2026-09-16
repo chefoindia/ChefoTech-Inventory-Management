@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { emailSchema, objectIdSchema, phoneSchema } from './common';
 import { MEMBERSHIP_STATUSES } from '../constants/enums';
+import { attachmentRefSchema } from './attachment';
 
 export const outletAccessSchema = z.object({
   all: z.boolean().default(false),
@@ -34,5 +35,7 @@ export type UpdateMembershipInput = z.infer<typeof updateMembershipSchema>;
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   phone: phoneSchema.or(z.literal('')).optional(),
+  /** Verified Cloudinary reference (from /attachments/confirm); null removes the avatar. */
+  avatar: attachmentRefSchema.nullable().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

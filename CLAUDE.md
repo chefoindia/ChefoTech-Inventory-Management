@@ -8,6 +8,7 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 - `pnpm dev:api` / `pnpm dev:web` — dev servers on :4000 / :3000. `.claude/launch.json` has both.
 - `pnpm test` — shared unit tests + api integration tests (mongodb-memory-server replica set; binary cached in `node_modules/.cache/mongodb-memory-server`).
 - `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+- `pnpm --filter @pharmaos/web test:e2e` — Playwright browser tests in `apps/web/e2e`; they expect the api (:4000) and web (:3000) dev servers to be running and register a fresh organization per test.
 
 ## Non-negotiable rules
 1. Money = integer minor units (paise); percentages = basis points. Use helpers in `packages/shared/src/money.ts`.

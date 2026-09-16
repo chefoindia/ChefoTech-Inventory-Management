@@ -7,6 +7,8 @@ export const outletSettingsSchema = z.object({
   invoiceFooterNote: z.string().trim().max(500).optional().default(''),
   defaultPrinter: z.enum(['a4', 'thermal80', 'thermal58']).default('a4'),
   autoPrintOnSale: z.boolean().default(false),
+  /** Free-form opening hours shown on documents, e.g. "Mon–Sat 9:00–21:00". */
+  businessHours: z.string().trim().max(120).optional().default(''),
 });
 
 export const createOutletSchema = z.object({

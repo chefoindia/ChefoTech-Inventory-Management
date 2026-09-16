@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Spinner, ErrorState } from '@/components/ui/states';
 import { Alert } from '@/components/ui/alert';
+import { ImageField } from '@/components/ui/image-field';
 
 const DOC_LABELS: Record<(typeof DOCUMENT_TYPES)[number], string> = {
   sale: 'Sales invoice',
@@ -106,6 +107,15 @@ export default function OrganizationSettingsPage() {
             </TabsList>
 
             <TabsContent value="profile" className="space-y-5">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Logo</CardTitle>
+                  <CardDescription>Printed on invoices and documents through the logo element in templates. PNG, JPG, WebP or SVG.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ImageField value={org.data.logo ?? null} purpose="organizationLogo" entityId={org.data.id} label="Upload logo" disabled={readOnly || update.isPending} onChange={(ref) => update.mutate({ logo: ref } as UpdateOrganizationInput, { onSuccess: () => toast.success(ref ? 'Logo updated' : 'Logo removed'), onError: (err) => toast.error(errorMessage(err)) })} />
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Identity</CardTitle>

@@ -18,6 +18,7 @@ const outletSchema = new Schema(
       invoiceFooterNote: { type: String, default: '' },
       defaultPrinter: { type: String, enum: ['a4', 'thermal80', 'thermal58'], default: 'a4' },
       autoPrintOnSale: { type: Boolean, default: false },
+      businessHours: { type: String, default: '' },
     },
     isDefault: { type: Boolean, default: false },
     status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active' },

@@ -109,7 +109,7 @@ export interface OutletDto {
   phone?: string;
   email?: string;
   address: Address;
-  settings: { invoiceFooterNote: string; defaultPrinter: string; autoPrintOnSale: boolean };
+  settings: { invoiceFooterNote: string; defaultPrinter: string; autoPrintOnSale: boolean; businessHours?: string };
   isDefault: boolean;
   status: EntityStatus;
   createdAt: string;

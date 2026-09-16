@@ -286,6 +286,7 @@ export async function updateProfile(ctx: RequestContext, input: UpdateProfileInp
   if (!user) throw new NotFoundError('User');
   if (input.name !== undefined) user.name = input.name;
   if (input.phone !== undefined) user.phone = input.phone;
+  if (input.avatar !== undefined) user.set('avatar', input.avatar);
   await user.save();
   return toUserDto(user.toObject() as UserDoc);
 }

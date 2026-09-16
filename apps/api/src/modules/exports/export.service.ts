@@ -9,6 +9,15 @@ import { PurchaseModel, type PurchaseDoc } from '@/models/purchase.model';
 import { LedgerEntryModel, type LedgerEntryDoc } from '@/models/ledger-entry.model';
 import { UnitModel, type UnitDoc } from '@/models/unit.model';
 import { CategoryModel, type CategoryDoc } from '@/models/category.model';
+import { OrganizationModel } from '@/models/organization.model';
+import { OutletModel } from '@/models/outlet.model';
+import { CustomFieldDefinitionModel } from '@/models/custom-field.model';
+import { ProductBatchModel } from '@/models/product-batch.model';
+import { GrnModel } from '@/models/grn.model';
+import { SalesReturnModel } from '@/models/sales-return.model';
+import { PurchaseReturnModel } from '@/models/purchase-return.model';
+import { PartyPaymentModel } from '@/models/party-payment.model';
+import { InventoryMovementModel } from '@/models/inventory-movement.model';
 import type { RequestContext } from '@/lib/context';
 import { hasPermission } from '@/lib/context';
 import { orgFilter, outletFilter } from '@/lib/scoped';
@@ -146,4 +155,63 @@ export async function exportEntity(ctx: RequestContext, entity: ExportEntity, q:
   }
   const csv = Papa.unparse({ fields: headers, data: safeRows as unknown[][] });
   return { fileName: `pharmaos-${entity}-${stamp}.csv`, contentType: 'text/csv; charset=utf-8', buffer: Buffer.from('﻿' + csv, 'utf8'), rows: rows.length };
+}
+
+/* ---------------------------------------------------------------- organization bundle */
+
+const BUNDLE_LIMIT = 100_000;
+
+/**
+ * Whole-organization JSON export for business continuity: every operational collection, all outlets,
+ * capped per collection. Cost/purchase prices are stripped unless the caller may view them. Managed
+ * MongoDB backups remain the disaster-recovery mechanism; this is the portable copy an owner can keep.
+ */
+export async function exportOrganization(ctx: RequestContext): Promise<{ fileName: string; contentType: string; buffer: Buffer; rows: number }> {
+  const showCost = hasPermission(ctx, 'products.viewCost');
+  const org = orgFilter(ctx);
+  const [organization, outlets, units, categories, customFields, products, customers, suppliers, batches, sales, purchases, grns, salesReturns, purchaseReturns, payments, ledger, movements] = await Promise.all([
+    OrganizationModel.findById(ctx.organizationId).lean(),
+    OutletModel.find(org).lean(),
+    UnitModel.find(org).lean(),
+    CategoryModel.find(org).lean(),
+    CustomFieldDefinitionModel.find(org).lean(),
+    ProductModel.find(org).limit(BUNDLE_LIMIT).lean(),
+    CustomerModel.find(org).limit(BUNDLE_LIMIT).lean(),
+    SupplierModel.find(org).limit(BUNDLE_LIMIT).lean(),
+    ProductBatchModel.find(org).limit(BUNDLE_LIMIT).lean(),
+    SaleModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    PurchaseModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    GrnModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    SalesReturnModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    PurchaseReturnModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    PartyPaymentModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+    LedgerEntryModel.find(org).sort({ date: -1 }).limit(BUNDLE_LIMIT).lean(),
+    InventoryMovementModel.find(org).sort({ createdAt: -1 }).limit(BUNDLE_LIMIT).lean(),
+  ]);
+  const stripCost = <T extends Record<string, unknown>>(rows: T[], keys: string[]): T[] => (showCost ? rows : rows.map((r) => { const c = { ...r }; for (const k of keys) delete c[k]; return c; }));
+  const bundle = {
+    format: 'pharmaos.organization-export',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    organization,
+    outlets,
+    units,
+    categories,
+    customFields,
+    products: stripCost(products as Record<string, unknown>[], []).map((p) => (showCost ? p : { ...p, pricing: { ...(p.pricing as Record<string, unknown>), purchasePriceMinor: undefined } })),
+    customers,
+    suppliers,
+    batches: stripCost(batches as Record<string, unknown>[], ['purchasePriceMinor']),
+    sales,
+    purchases: showCost ? purchases : [],
+    grns: showCost ? grns : [],
+    salesReturns,
+    purchaseReturns: showCost ? purchaseReturns : [],
+    payments,
+    ledger,
+    movements: stripCost(movements as Record<string, unknown>[], ['unitCostMinor']),
+  };
+  const rows = Object.values(bundle).reduce<number>((s, v) => s + (Array.isArray(v) ? v.length : 0), 0);
+  await audit(ctx, { action: 'data.exported', entityType: 'Export', summary: `Exported the whole organization (${rows} records)` });
+  return { fileName: `pharmaos-organization-${new Date().toISOString().slice(0, 10)}.json`, contentType: 'application/json; charset=utf-8', buffer: Buffer.from(JSON.stringify(bundle)), rows };
 }

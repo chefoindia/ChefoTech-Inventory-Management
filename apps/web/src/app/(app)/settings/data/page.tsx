@@ -225,6 +225,11 @@ function ExportTab() {
           <DateRangePicker value={range} onChange={setRange} />
           <span className="text-[12px] text-fg-subtle">Date range applies to sales, purchases, movements and ledger.</span>
         </div>
+        <div className="rounded-[var(--radius-card)] border border-border p-3">
+          <div className="text-[13px] font-medium">Whole-organization backup copy</div>
+          <p className="mb-2 text-[12px] text-fg-subtle">One JSON file with every outlet, product, batch, customer, supplier, invoice, purchase, payment, ledger entry and stock movement (cost fields only if you may see them). Keep it alongside your managed database backups.</p>
+          <Button variant="secondary" size="sm" loading={busy === 'organization'} onClick={async () => { setBusy('organization'); try { await downloadFile('/exports/organization', 'pharmaos-organization.json'); } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(null); } }}><Download className="h-4 w-4" /> Export organization (JSON)</Button>
+        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {EXPORT_ENTITIES.map((e) => (
             <Button key={e} variant="secondary" className="justify-start" loading={busy === e} onClick={() => void run(e)}>{format === 'xlsx' ? <FileSpreadsheet className="h-4 w-4" /> : <Download className="h-4 w-4" />} {EXPORT_LABELS[e]}</Button>

@@ -118,6 +118,7 @@ async function orgAndOutlet(ctx: RequestContext, outletId: Types.ObjectId | null
       drugLicenseNo: outlet?.drugLicenseNo ?? '',
       stateCode: outlet?.stateCode ?? '',
       invoiceFooterNote: outlet?.settings?.invoiceFooterNote ?? '',
+      businessHours: outlet?.settings?.businessHours ?? '',
     },
   };
 }
@@ -506,7 +507,7 @@ export async function sampleData(ctx: RequestContext, type: DocumentTemplateType
 /** Binding catalogue for the designer. */
 export const BINDING_GROUPS: BindingGroup[] = [
   { group: 'Organization', bindings: ['name', 'legalName', 'addressLine', 'phone', 'email', 'website', 'gstin', 'pan'].map((k) => ({ key: `organization.${k}`, label: k })) },
-  { group: 'Outlet', bindings: ['name', 'code', 'addressLine', 'phone', 'email', 'gstin', 'drugLicenseNo', 'invoiceFooterNote'].map((k) => ({ key: `outlet.${k}`, label: k })) },
+  { group: 'Outlet', bindings: ['name', 'code', 'addressLine', 'phone', 'email', 'gstin', 'drugLicenseNo', 'invoiceFooterNote', 'businessHours'].map((k) => ({ key: `outlet.${k}`, label: k })) },
   { group: 'Document', bindings: ['number', 'date', 'dateTime', 'status', 'paid', 'balance', 'credit', 'dueDate', 'paymentMethods', 'doctorName', 'soldBy', 'notes', 'supplierInvoiceNumber', 'invoiceDate', 'purchaseNumber', 'amount', 'amountWords', 'method', 'reference', 'balanceAfter', 'referenceNumber', 'settlement', 'periodFrom', 'periodTo', 'closingBalance', 'fromOutlet', 'toOutlet', 'cancelled'].map((k) => ({ key: `document.${k}`, label: k })) },
   { group: 'Customer', bindings: ['name', 'phone', 'email', 'addressLine', 'gstin', 'stateCode'].map((k) => ({ key: `customer.${k}`, label: k })) },
   { group: 'Supplier', bindings: ['name', 'phone', 'email', 'addressLine', 'gstin', 'stateCode'].map((k) => ({ key: `supplier.${k}`, label: k })) },

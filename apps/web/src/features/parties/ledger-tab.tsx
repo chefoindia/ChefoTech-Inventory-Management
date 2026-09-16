@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Scale, FileText } from 'lucide-react';
+import { Scale, FileText, Mail } from 'lucide-react';
 import type { LedgerEntryDto } from '@pharmaos/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
@@ -13,6 +13,7 @@ function usePartyLedger(partyType: 'customer' | 'supplier', id: string, page: nu
 }
 import { usePermission } from '@/features/auth/permissions';
 import { openDocument } from '@/features/documents/api';
+import { EmailDialog } from '@/components/documents/document-actions';
 import { errorMessage } from '@/lib/api-client';
 import { money } from '@/lib/format';
 import { formatDateTime } from '@/lib/utils';
@@ -26,12 +27,14 @@ import { Textarea, Select } from '@/components/ui/input';
 import { MoneyInput } from '@/components/ui/money-input';
 
 /** Party ledger (debit/credit running balance) with statement printing and manual adjustments. */
-export function LedgerTab({ partyType, partyId, balanceMinor }: { partyType: 'customer' | 'supplier'; partyId: string; balanceMinor: number }) {
+export function LedgerTab({ partyType, partyId, balanceMinor, email }: { partyType: 'customer' | 'supplier'; partyId: string; balanceMinor: number; email?: string }) {
   const [page, setPage] = React.useState(1);
   const ledger = usePartyLedger(partyType, partyId, page);
   const canAdjust = usePermission(partyType === 'customer' ? 'customers.adjustBalance' : 'suppliers.adjustBalance');
   const [range, setRange] = React.useState<DateRange>(defaultRange(90));
   const [adjOpen, setAdjOpen] = React.useState(false);
+  const [emailOpen, setEmailOpen] = React.useState(false);
+  const canEmail = usePermission('sales.email');
   const [printing, setPrinting] = React.useState(false);
   const columns: Column<LedgerEntryDto>[] = [
     { key: 'date', header: 'Date', cell: (e) => formatDateTime(e.date) },
@@ -55,11 +58,13 @@ export function LedgerTab({ partyType, partyId, balanceMinor }: { partyType: 'cu
           <DateRangePicker value={range} onChange={setRange} />
           <Button variant="secondary" size="sm" loading={printing} onClick={() => void printStatement(false)}><FileText className="h-3.5 w-3.5" /> Statement</Button>
           <Button variant="ghost" size="sm" onClick={() => void printStatement(true)}>Download</Button>
+          {partyType === 'customer' && canEmail ? <Button variant="secondary" size="sm" onClick={() => setEmailOpen(true)}><Mail className="h-3.5 w-3.5" /> Email reminder</Button> : null}
           {canAdjust ? <Button variant="secondary" size="sm" onClick={() => setAdjOpen(true)}><Scale className="h-3.5 w-3.5" /> Adjust balance</Button> : null}
         </div>
       </div>
       <DataTable columns={columns} rows={ledger.data?.items} rowKey={(e) => e.id} isPending={ledger.isPending} isError={ledger.isError} error={ledger.error} meta={ledger.data?.meta} onPageChange={setPage} dense empty={{ title: 'No ledger entries yet' }} />
       <LedgerAdjustmentDialog partyType={partyType} partyId={partyId} open={adjOpen} onOpenChange={setAdjOpen} />
+      <EmailDialog open={emailOpen} onOpenChange={setEmailOpen} type="customerStatement" refId={partyId} defaultTo={email} />
     </Card>
   );
 }

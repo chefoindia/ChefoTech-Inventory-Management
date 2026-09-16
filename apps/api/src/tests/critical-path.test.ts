@@ -87,6 +87,17 @@ describe('critical path: product → opening stock → POS sale → purchase (re
     expect(dash.body.data.purchases.valueMinor).toBe(147_800);
     expect(dash.body.data.payables.outstandingMinor).toBe(147_800);
     expect(dash.body.data.inventory.products).toBeGreaterThanOrEqual(1);
+
+    // Whole-organization export bundle for business continuity.
+    const bundle = await request(app).get(`${BASE}/exports/organization`).set(hdr(t));
+    expect(bundle.status).toBe(200);
+    expect(bundle.headers['content-type']).toContain('application/json');
+    const parsed = bundle.body as { format: string; products: unknown[]; sales: unknown[]; purchases: unknown[]; ledger: unknown[] };
+    expect(parsed.format).toBe('pharmaos.organization-export');
+    expect(parsed.products.length).toBeGreaterThanOrEqual(1);
+    expect(parsed.sales.length).toBe(1);
+    expect(parsed.purchases.length).toBe(1);
+    expect(parsed.ledger.length).toBeGreaterThanOrEqual(1);
   });
 
   it('seeds default units on first use for organizations that have none', async () => {

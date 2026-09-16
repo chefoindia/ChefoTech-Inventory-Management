@@ -11,3 +11,7 @@ coverage/
 Thumbs.db
 .turbo/
 *.tsbuildinfo
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

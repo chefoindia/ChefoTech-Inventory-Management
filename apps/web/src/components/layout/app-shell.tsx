@@ -28,6 +28,7 @@ import { useLogout, useSwitchOrganization } from '@/features/auth/api';
 import { usePermission } from '@/features/auth/permissions';
 import { useUnreadCount } from '@/features/notifications/api';
 import { Logo } from './logo';
+import { ConnectionBanner } from './connection-status';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -215,6 +216,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-[var(--radius-control)] focus:bg-primary-600 focus:px-3 focus:py-1.5 focus:text-sm focus:text-white">Skip to content</a>
+        <ConnectionBanner />
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface/95 px-4 backdrop-blur">
           <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
             <Menu className="h-4 w-4" />
@@ -224,7 +227,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <UserMenu />
           </div>
         </header>
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-5 outline-none sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1280px]">{children}</div>
         </main>
       </div>

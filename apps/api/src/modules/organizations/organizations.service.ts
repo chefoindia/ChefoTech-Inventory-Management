@@ -39,6 +39,7 @@ export async function updateOrganization(ctx: RequestContext, input: UpdateOrgan
   if (input.website !== undefined) org.website = input.website;
   if (input.financialYearStartMonth !== undefined) org.financialYearStartMonth = input.financialYearStartMonth;
   if (input.timezone !== undefined) org.timezone = input.timezone;
+  if (input.logo !== undefined) org.set('logo', input.logo);
   if (input.address) org.set('address', { ...(plain.address ?? {}), ...input.address });
   if (input.tax) org.set('tax', { ...(plain.tax ?? {}), ...input.tax });
 

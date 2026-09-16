@@ -56,7 +56,7 @@ function OutletDialog({ open, onOpenChange, outlet }: { open: boolean; onOpenCha
           gstin: me?.organization.tax.gstin ?? '',
           drugLicenseNo: '',
           address: {},
-          settings: { defaultPrinter: 'a4', autoPrintOnSale: false, invoiceFooterNote: '' },
+          settings: { defaultPrinter: 'a4', autoPrintOnSale: false, invoiceFooterNote: '', businessHours: '' },
         },
   });
   const errors = form.formState.errors;
@@ -125,6 +125,9 @@ function OutletDialog({ open, onOpenChange, outlet }: { open: boolean; onOpenCha
             </FormField>
             <FormField label="PIN code" htmlFor="address.pincode">
               <Input inputMode="numeric" {...form.register('address.pincode')} />
+            </FormField>
+            <FormField label="Business hours" htmlFor="settings.businessHours" className="sm:col-span-2" hint="Free text, e.g. Mon–Sat 9:00–21:00; available to document templates.">
+              <Input {...form.register('settings.businessHours')} />
             </FormField>
             <FormField label="Invoice footer note" htmlFor="settings.invoiceFooterNote" className="sm:col-span-2" hint="Printed at the bottom of this outlet's invoices.">
               <Input {...form.register('settings.invoiceFooterNote')} />
