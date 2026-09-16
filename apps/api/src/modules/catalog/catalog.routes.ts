@@ -9,6 +9,7 @@ import {
   updateProductSchema,
   productListQuerySchema,
   productSearchQuerySchema,
+  addStarterProductsSchema,
   attachmentRefSchema,
   idParamSchema,
   objectIdSchema,
@@ -18,6 +19,7 @@ import {
   type CreateProductInput,
   type UpdateProductInput,
   type ProductListQuery,
+  type AddStarterProductsInput,
   type AttachmentRef,
 } from '@pharmaos/shared';
 import { validate, body, params, query } from '@/middleware/validate';
@@ -28,6 +30,7 @@ import { ok, created, noContent, paginated } from '@/lib/response';
 import * as units from './units.service';
 import * as categories from './categories.service';
 import * as products from './products.service';
+import * as starter from './starter-catalogue.service';
 
 /* ---------------------------------------------------------------- units */
 export const unitsRouter = Router();
@@ -73,6 +76,15 @@ productsRouter.get('/search', requirePermission('products.view'), validate({ que
 
 productsRouter.get('/by-barcode/:code', requirePermission('products.view'), validate({ params: z.object({ code: z.string().trim().min(3).max(48) }) }), async (req, res) => {
   ok(res, await products.findByBarcode(ctxOf(req), params<{ code: string }>(req).code));
+});
+
+// Starter catalogue: common medicines a new pharmacy can add in one go. Above '/:id' on purpose.
+productsRouter.get('/starter-catalogue', requirePermission('products.view'), async (req, res) => {
+  ok(res, await starter.listStarterCatalogue(ctxOf(req)));
+});
+
+productsRouter.post('/starter-catalogue', requirePermission('products.create'), validate({ body: addStarterProductsSchema }), async (req, res) => {
+  created(res, await starter.addStarterProducts(ctxOf(req), body<AddStarterProductsInput>(req).keys));
 });
 
 productsRouter.get('/', requirePermission('products.view'), validate({ query: productListQuerySchema }), async (req, res) => {

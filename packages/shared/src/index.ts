@@ -27,3 +27,4 @@ export * from './types/transactions';
 export * from './schemas/ai';
 export * from './schemas/lead';
 export * from './plans';
+export * from './catalogue/starter-medicines';

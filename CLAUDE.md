@@ -36,6 +36,11 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 - Model ids are a preference, not a constant: Google renames and retires them, and a model can still appear in ListModels while being closed to new users (`404 … no longer available to new users … use models/X`). On a 404 the provider takes Google's named replacement, else `pickClosestModel()` over the key's catalogue, retries, and the chat service persists the substitute. Defaults are the maintained `*-latest` aliases, which are never retired. Never hard-code a dated model id.
 - Tests stub `GeminiProvider.prototype.generate/test` with `vi.spyOn`; no test calls Google.
 
+## Starter catalogue (common medicines)
+- `packages/shared/src/catalogue/starter-medicines.ts` holds ~100 curated Indian brands (composition, maker, pack, units, GST, schedule) so a new pharmacy can fill its product list in one click at `/products/starter`.
+- Entries carry NO prices: MRP and cost belong to a batch and arrive with the first purchase or opening stock. Never add invented prices to this file, and keep the on-screen caveat that pack size, GST and schedule must be checked against the pack.
+- `modules/catalog/starter-catalogue.service.ts` inserts the batch in one write (checked once for plan limit, units and duplicate names) rather than looping `createProduct`, which would be ~50 round trips.
+
 ## Adding a module (pattern)
 `apps/api/src/modules/<name>/{<name>.service.ts,<name>.routes.ts}` → mount in `apps/api/src/app.ts` → schemas/types in `packages/shared/src/schemas` and `types/api.ts` → hooks in `apps/web/src/features/<name>/api.ts` → pages under `apps/web/src/app/(app)/`. Add tests in `apps/api/src/tests/` using `registerTenant`/`addMember` helpers.
 

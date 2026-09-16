@@ -152,7 +152,7 @@ describe('AI: model availability', () => {
   it('moves off a model Google has retired, using the replacement Google names', async () => {
     const urls: string[] = [];
     const ok = { candidates: [{ content: { parts: [{ text: 'OK' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2 } };
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: Parameters<typeof fetch>[0]) => {
       const url = String(input);
       urls.push(url.replace(/key=[^&]+/, 'key=***'));
       // The retired model is still listed by ListModels: being listed is not proof it can be called.

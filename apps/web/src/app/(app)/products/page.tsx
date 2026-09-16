@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Pill, Upload, Download, Search } from 'lucide-react';
+import { Plus, Pill, Upload, Download, Search, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ProductDto } from '@pharmaos/shared';
 import { useProducts, useCategories } from '@/features/catalog/api';
@@ -54,6 +54,7 @@ export default function ProductsPage() {
         actions={
           <>
             {canExport ? <Button variant="secondary" size="sm" loading={exporting} onClick={async () => { setExporting(true); try { await downloadFile('/exports/products?format=xlsx', 'products.xlsx'); } catch (err) { toast.error(errorMessage(err)); } finally { setExporting(false); } }}><Download className="h-3.5 w-3.5" /> Export</Button> : null}
+            {canCreate ? <Link href="/products/starter" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Sparkles className="h-3.5 w-3.5" /> Common medicines</Link> : null}
             {canImport ? <Link href="/settings/data?entity=products" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Upload className="h-3.5 w-3.5" /> Import</Link> : null}
             {canCreate ? <Link href="/products/new" className={buttonVariants({ size: 'sm' })}><Plus className="h-4 w-4" /> New product</Link> : null}
           </>
@@ -91,7 +92,7 @@ export default function ProductsPage() {
           meta={products.data?.meta}
           onPageChange={setPage}
           onRowClick={(p) => router.push(`/products/${p.id}`)}
-          empty={{ icon: Pill, title: q ? 'No products match' : 'No products yet', description: q ? 'Try a different name or barcode.' : 'Add products one by one or import a CSV from your old software.', action: canCreate && !q ? <Link href="/products/new" className={buttonVariants({ size: 'sm' })}><Plus className="h-4 w-4" /> New product</Link> : undefined }}
+          empty={{ icon: Pill, title: q ? 'No products match' : 'No products yet', description: q ? 'Try a different name or barcode.' : 'Start from a list of common medicines, import a CSV from your old software, or add them one by one.', action: canCreate && !q ? <div className="flex flex-wrap items-center justify-center gap-2"><Link href="/products/starter" className={buttonVariants({ size: 'sm' })}><Sparkles className="h-4 w-4" /> Add common medicines</Link><Link href="/products/new" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Plus className="h-4 w-4" /> New product</Link></div> : undefined }}
         />
       </Card>
     </>

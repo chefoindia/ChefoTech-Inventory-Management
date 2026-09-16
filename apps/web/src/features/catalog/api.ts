@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ProductDto, ProductSearchHit, CreateProductInput, UpdateProductInput, CategoryDto, CreateCategoryInput, UpdateCategoryInput, UnitDto, CreateUnitInput, AttachmentRef } from '@pharmaos/shared';
+import type { ProductDto, ProductSearchHit, CreateProductInput, UpdateProductInput, CategoryDto, CreateCategoryInput, UpdateCategoryInput, UnitDto, CreateUnitInput, AttachmentRef, StarterCatalogueItem, AddStarterProductsResult } from '@pharmaos/shared';
 import { api } from '@/lib/api-client';
 import { useSession } from '@/stores/session';
 
@@ -38,6 +38,19 @@ export function useProductSearch(q: string, withStock = false, limit = 15) {
 
 export async function lookupBarcode(code: string): Promise<ProductSearchHit> {
   return api.get<ProductSearchHit>(`/products/by-barcode/${encodeURIComponent(code)}`);
+}
+
+/** Common medicines a new pharmacy can add in one click, flagged with what it already stocks. */
+export function useStarterCatalogue() {
+  return useQuery({ queryKey: ['products', 'starter-catalogue'], queryFn: () => api.get<StarterCatalogueItem[]>('/products/starter-catalogue'), staleTime: 30_000 });
+}
+
+export function useAddStarterProducts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keys: string[]) => api.post<AddStarterProductsResult>('/products/starter-catalogue', { keys }),
+    onSuccess: () => invalidateProducts(qc),
+  });
 }
 
 export function useCreateProduct() {
