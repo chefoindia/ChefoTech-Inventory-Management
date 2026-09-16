@@ -19,7 +19,7 @@ async function registerAndLogin(page: Page, api: APIRequestContext) {
   await expect(page).toHaveURL(/\/dashboard/);
 }
 
-const PAGES = ['/dashboard', '/sales/pos', '/products', '/inventory', '/customers', '/purchases/new', '/settings/organization', '/settings/notifications'];
+const PAGES = ['/dashboard', '/sales/pos', '/products', '/inventory', '/customers', '/purchases/new', '/settings/organization', '/settings/notifications', '/settings/ai'];
 
 test.describe('accessibility (axe-core, WCAG 2.1 AA)', () => {
   test('key screens have no serious or critical violations', async ({ page }) => {

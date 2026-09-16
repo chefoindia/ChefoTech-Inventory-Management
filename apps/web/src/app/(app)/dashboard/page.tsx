@@ -19,6 +19,7 @@ import { money, moneyCompact, pct } from '@/lib/format';
 import { formatDate, relativeTime } from '@/lib/utils';
 import { errorMessage } from '@/lib/api-client';
 import { PAYMENT_METHOD_LABELS } from '@/components/ui/payment-lines';
+import { AiDashboardCard } from '@/components/ai/assistant';
 
 const COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'];
 
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title={`Good day, ${me.user.name.split(' ')[0]}`}
+        help="What does the dashboard show and what should I look at first each day?"
         description={activeOutlet ? `${me.organization.name} · ${activeOutlet.name}` : me.organization.name}
         actions={<DateRangePicker value={range} onChange={setRange} />}
       />
@@ -57,6 +59,8 @@ export default function DashboardPage() {
           Everything is unlocked during the trial. Choose a plan before it ends to keep your data flowing.
         </Alert>
       ) : null}
+
+      <div className="mb-5"><AiDashboardCard /></div>
 
       {!activeOutletId ? (
         <EmptyState icon={Boxes} title="No outlet selected" description="Pick an outlet from the switcher above to see its figures." />

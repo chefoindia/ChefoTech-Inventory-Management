@@ -6,7 +6,7 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 ## Commands
 - `pnpm --filter @pharmaos/shared build` — required once before running api/web (they import the built package).
 - `pnpm dev:api` / `pnpm dev:web` — dev servers on :4000 / :3000. `.claude/launch.json` has both.
-- `pnpm test` — shared unit tests + api integration tests (mongodb-memory-server replica set; binary cached in `node_modules/.cache/mongodb-memory-server`).
+- `pnpm test` — shared unit tests + api integration tests (mongodb-memory-server replica set; binary and per-run data dir under `node_modules/.cache/mongodb-memory-server`, so a full system drive does not break the suite; override the data dir with `PHARMAOS_TEST_DBPATH`).
 - `pnpm typecheck`, `pnpm lint`, `pnpm build`.
 - `pnpm --filter @pharmaos/web test:e2e` — Playwright browser tests in `apps/web/e2e`; they expect the api (:4000) and web (:3000) dev servers to be running and register a fresh organization per test.
 
@@ -20,6 +20,12 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 7. Historical documents snapshot prices/names/units; never recompute old invoices from current product data.
 8. No fake UI: every sidebar module is backed by real API data. Do not add placeholder pages with dummy numbers; unfinished work is tracked in `docs/PHASES.md`.
 9. Every list view has loading, empty and error states; every form maps server field errors via `applyServerErrors`.
+
+## AI assistant (Gemini, optional)
+- Backend: `apps/api/src/modules/ai/` (settings, tools, chat/extract service, routes at `/api/v1/ai`), provider abstraction in `apps/api/src/services/ai/`. Keys are sealed with `lib/secret-box.ts`; never log or return them.
+- Adding an AI capability = adding a tool in `modules/ai/tools.ts` with a `permission` (and optional `feature`) that calls an existing service. Tools must not touch models directly and must return proposals (`actions`) for anything that changes money, stock or sends messages.
+- Frontend: `features/ai/api.ts`, `stores/assistant.ts`, `components/ai/assistant.tsx` (`AiAssistant` mounted in the app shell, `AskAi`, `AiDashboardCard`). `PageHeader` shows a "What is this?" button automatically; pass `help="…"` for a better question or `help={false}` to hide it.
+- Tests stub `GeminiProvider.prototype.generate/test` with `vi.spyOn`; no test calls Google.
 
 ## Adding a module (pattern)
 `apps/api/src/modules/<name>/{<name>.service.ts,<name>.routes.ts}` → mount in `apps/api/src/app.ts` → schemas/types in `packages/shared/src/schemas` and `types/api.ts` → hooks in `apps/web/src/features/<name>/api.ts` → pages under `apps/web/src/app/(app)/`. Add tests in `apps/api/src/tests/` using `registerTenant`/`addMember` helpers.

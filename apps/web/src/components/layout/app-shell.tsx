@@ -29,6 +29,7 @@ import { usePermission } from '@/features/auth/permissions';
 import { useUnreadCount } from '@/features/notifications/api';
 import { Logo } from './logo';
 import { ConnectionBanner } from './connection-status';
+import { AiAssistant } from '@/components/ai/assistant';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -230,6 +231,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-5 outline-none sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1280px]">{children}</div>
         </main>
+        <AiAssistant />
       </div>
     </div>
   );

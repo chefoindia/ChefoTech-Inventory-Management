@@ -138,6 +138,10 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'data.import', label: 'Import data' },
     { key: 'data.export', label: 'Export organization data', sensitive: true },
   ]),
+  g('ai', 'AI assistant', [
+    { key: 'ai.use', label: 'Use the AI assistant', description: 'The assistant can only do what this user can already do.' },
+    { key: 'ai.manage', label: 'Configure AI & Gemini key', sensitive: true },
+  ]),
 ];
 
 export const ALL_PERMISSIONS: readonly string[] = PERMISSION_GROUPS.flatMap((grp) =>
@@ -184,6 +188,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     description: 'Runs day-to-day operations of assigned outlets.',
     permissions: without(
       [
+        'ai.use',
         ...pick('dashboard', 'products', 'inventory', 'purchases', 'sales', 'customers', 'suppliers', 'prescriptions', 'reports', 'notifications'),
         'outlets.view',
         'users.view',
@@ -199,6 +204,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     name: 'Pharmacist',
     description: 'Dispenses medicines, manages prescriptions and stock.',
     permissions: [
+      'ai.use',
       'dashboard.view',
       ...without(pick('products'), 'products.viewCost', 'products.import', 'products.export', 'products.archive'),
       'inventory.view',
@@ -220,6 +226,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     name: 'Billing Staff',
     description: 'Creates sales at the counter and collects payments.',
     permissions: [
+      'ai.use',
       'products.view',
       'inventory.view',
       'sales.view',
@@ -241,6 +248,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     name: 'Inventory Manager',
     description: 'Owns stock accuracy, batches, expiry and transfers.',
     permissions: [
+      'ai.use',
       'dashboard.view',
       ...without(pick('products'), 'products.managePricing'),
       ...pick('inventory'),
@@ -259,6 +267,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     name: 'Purchase Manager',
     description: 'Manages suppliers, purchase invoices and GRNs.',
     permissions: [
+      'ai.use',
       'dashboard.view',
       'products.view',
       'products.viewCost',
@@ -276,6 +285,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
     name: 'Accountant',
     description: 'Read-only operations with full financial visibility and payment recording.',
     permissions: [
+      'ai.use',
       'dashboard.view',
       'dashboard.viewProfit',
       'products.view',

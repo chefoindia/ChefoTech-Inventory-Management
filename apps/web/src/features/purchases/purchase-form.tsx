@@ -2,9 +2,13 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, PackageCheck } from 'lucide-react';
+import { Plus, Trash2, Save, PackageCheck, Sparkles } from 'lucide-react';
 import { createPurchaseSchema, computeDocumentTotals, isInterState, type CreatePurchaseInput, type PurchaseDto, type ProductSearchHit, type SupplierDto, type AttachmentRef, type DocumentTotals } from '@pharmaos/shared';
 import { useCreatePurchase, useUpdatePurchase } from './api';
+import { AiInvoiceReview, type ReviewedLine } from './ai-invoice-review';
+import { useAiAvailable, useExtractInvoice } from '@/features/ai/api';
+import { useSupplier } from '@/features/parties/api';
+import type { AiExtractedInvoice } from '@pharmaos/shared';
 import { usePermission } from '@/features/auth/permissions';
 import { useSession } from '@/stores/session';
 import { errorMessage } from '@/lib/api-client';
@@ -77,6 +81,56 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [idem, setIdem] = React.useState(newIdempotencyKey);
   const pending = create.isPending || update.isPending;
+  const ai = useAiAvailable('invoiceReading');
+  const extract = useExtractInvoice();
+  const [aiResult, setAiResult] = React.useState<AiExtractedInvoice | null>(null);
+  const [aiOpen, setAiOpen] = React.useState(false);
+
+  // Supplier chosen by id only (AI draft / restored draft): load it so terms and GST state apply.
+  const supplierById = useSupplier(supplierId && !supplier ? supplierId : null);
+  React.useEffect(() => {
+    if (supplierById.data && !supplier) setSupplier(supplierById.data);
+  }, [supplierById.data, supplier]);
+
+  // A draft prepared by the AI assistant ("prepare a purchase for ...") lands here for review; nothing was saved.
+  const draftKey = `pharmaos.purchaseDraft.${me.user.id}`;
+  const draftConsumed = React.useRef(false);
+  React.useEffect(() => {
+    if (purchase || draftConsumed.current) return;
+    draftConsumed.current = true;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      localStorage.removeItem(draftKey);
+      const d = JSON.parse(raw) as { supplierId?: string | null; supplierInvoiceNumber?: string; invoiceDate?: string; lines?: { productId: string; productName: string; packLabel: string; units: ProductSearchHit['units']; pricingUnitId: string; baseUnitId: string; taxRateBps: number; cessBps: number; unitId: string; qty: number; freeQty: number; batchNumber: string; expiryDate: string; purchasePriceMinor: number | null; mrpMinor: number; sellingPriceMinor: number }[] };
+      if (!d.lines?.length) return;
+      if (d.supplierId) setSupplierId(d.supplierId);
+      if (d.supplierInvoiceNumber) setInvoiceNumber(d.supplierInvoiceNumber);
+      if (d.invoiceDate) setInvoiceDate(d.invoiceDate.slice(0, 10));
+      setLines(d.lines.map((l) => ({ ...emptyLine(), productId: l.productId, product: { name: l.productName, units: l.units, pricingUnitId: l.pricingUnitId, baseUnitId: l.baseUnitId, taxRateBps: l.taxRateBps, cessBps: l.cessBps, mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, packLabel: l.packLabel }, unitId: l.unitId, qty: l.qty, freeQty: l.freeQty, batchNumber: l.batchNumber, expiryDate: l.expiryDate, purchasePriceMinor: l.purchasePriceMinor, mrpMinor: l.mrpMinor || null, sellingPriceMinor: l.sellingPriceMinor || null })));
+      toast.info('Draft from the AI assistant loaded. Check every line before saving.');
+    } catch {
+      /* corrupt draft: ignore */
+    }
+  }, [draftKey, purchase]);
+
+  const readWithAi = (att: AttachmentRef) => {
+    extract.mutate({ attachment: att, supplierId: supplierId ?? undefined }, {
+      onSuccess: (r) => { setAiResult(r); setAiOpen(true); },
+      onError: (e) => toast.error(errorMessage(e)),
+    });
+  };
+  const applyAi = (reviewed: ReviewedLine[], header: { supplierId: string | null; invoiceNumber: string | null; invoiceDate: string | null }) => {
+    if (!supplierId && header.supplierId) setSupplierId(header.supplierId);
+    if (!invoiceNumber && header.invoiceNumber) setInvoiceNumber(header.invoiceNumber);
+    if (header.invoiceDate) setInvoiceDate(header.invoiceDate.slice(0, 10));
+    const mapped: LineDraft[] = reviewed.map((r) => {
+      const unitId = r.product.units.find((u) => u.isDefaultPurchase)?.unitId ?? r.product.pricingUnitId;
+      return { ...emptyLine(), productId: r.productId, product: r.product, unitId, qty: r.qty, freeQty: r.freeQty, batchNumber: r.batchNumber, expiryDate: r.expiryDate, purchasePriceMinor: r.purchasePriceMinor, mrpMinor: r.mrpMinor, sellingPriceMinor: r.product.sellingPriceMinor || null, discountBps: r.discountBps, taxRateBps: r.taxRateBps };
+    });
+    setLines((ls) => [...ls.filter((l) => l.productId), ...mapped]);
+    toast.success(`${mapped.length} line${mapped.length === 1 ? '' : 's'} filled from the invoice. Review and save.`);
+  };
 
   React.useEffect(() => {
     if (supplier && !purchase && !dueDate && supplier.paymentTermsDays) {
@@ -228,8 +282,10 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
               </div>
             ) : null}
             <div>
-              <div className="mb-1 flex items-center justify-between"><span className="text-[13px] font-medium">Invoice scan / attachments</span><FileUpload purpose="purchaseInvoice" multiple accept="image/*,.pdf" onUploaded={(refs) => setAttachments((a) => [...a, ...refs].slice(0, 5))} label="Upload" /></div>
+              <div className="mb-1 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">Invoice scan / attachments</span><div className="flex items-center gap-2">{ai.available && attachments.length && !purchase ? <Button variant="secondary" size="sm" loading={extract.isPending} onClick={() => readWithAi(attachments[attachments.length - 1]!)} title="Reads the last uploaded file and prepares lines for your review"><Sparkles className="h-3.5 w-3.5" /> Read invoice with AI</Button> : null}<FileUpload purpose="purchaseInvoice" multiple accept="image/*,.pdf" onUploaded={(refs) => setAttachments((a) => [...a, ...refs].slice(0, 5))} label="Upload" /></div></div>
               <AttachmentList items={attachments} onRemove={(pid) => setAttachments((a) => a.filter((x) => x.publicId !== pid))} />
+              {ai.available && !attachments.length && !purchase ? <p className="mt-1 text-[12px] text-fg-subtle">Upload a photo or PDF of the supplier bill and the AI can fill the lines for you to check.</p> : null}
+              <AiInvoiceReview result={aiResult} open={aiOpen} onOpenChange={setAiOpen} onApply={applyAi} />
             </div>
             <FormField label="Notes" htmlFor="notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
             <CustomFieldsForm entity="purchase" values={customFields} onChange={setCustomFields} />

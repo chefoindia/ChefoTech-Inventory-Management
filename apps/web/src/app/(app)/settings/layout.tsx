@@ -16,6 +16,7 @@ const SECTIONS: { label: string; href: string; permission?: string | string[] }[
   { label: 'Notifications', href: '/settings/notifications', permission: ['notifications.manage', 'notifications.view'] },
   { label: 'Import & export', href: '/settings/data', permission: ['data.import', 'data.export'] },
   { label: 'Subscription', href: '/settings/subscription', permission: ['organization.manage', 'organization.view'] },
+  { label: 'AI & Gemini', href: '/settings/ai', permission: ['ai.manage', 'ai.use'] },
   { label: 'Audit log', href: '/settings/audit', permission: 'audit.view' },
   { label: 'Security', href: '/settings/security' },
 ];

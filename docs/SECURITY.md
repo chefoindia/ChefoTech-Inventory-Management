@@ -39,6 +39,8 @@
 ## Secrets & config
 - All secrets via environment variables validated at boot; `.env.example` documents them; `.env` git-ignored.
 - Logs redact `password`, `authorization`, `cookie`, `token`, `refreshToken`.
+- Organization Gemini API keys: validated with a live call before saving, sealed with AES-256-GCM (`lib/secret-box.ts`; key derived from `AI_ENCRYPTION_KEY`, falling back to the JWT secret), stored only in `AiSettings.sealedApiKey`, exposed to clients only as the last four characters, never written to browser storage, and only ever decrypted inside the API process for the outgoing Gemini request. Removing the key disables AI for the organization.
+- AI tool calls run under the requesting user's context: every tool declares the permission it needs and is filtered out of the model's tool list when the user lacks it; tools use the existing service layer (tenant/outlet scoped), never raw database access; anything that moves money, stock or sends messages only returns a proposal that the user confirms through the normal endpoints.
 
 ## Audit
 - Every security-relevant and financial action writes an `AuditLog` entry with actor, org, outlet, action, entity, before/after (diffed), IP, user agent, request id.

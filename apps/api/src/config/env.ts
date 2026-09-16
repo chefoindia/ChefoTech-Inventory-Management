@@ -41,6 +41,8 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional().default(''),
   VAPID_PRIVATE_KEY: z.string().optional().default(''),
   VAPID_SUBJECT: z.string().optional().default('mailto:support@localhost'),
+  /** 32+ char secret used to encrypt per-organization AI keys at rest (defaults to the JWT secret). */
+  AI_ENCRYPTION_KEY: z.string().optional().default(''),
   /** Signing secret for public document share links (defaults to the JWT secret). */
   SHARE_LINK_SECRET: z.string().optional().default(''),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),

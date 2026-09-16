@@ -27,6 +27,9 @@ pnpm dev                                    # api on :4000, web on :3000
 
 Open http://localhost:3000, click **Start free trial**, and register your organization. The first user becomes the Owner with a default `MAIN` outlet and the system roles seeded.
 
+## AI assistant (optional)
+Each organization can connect its own Google Gemini API key under **Settings → AI & Gemini**. That unlocks a page-aware assistant (English / Hindi / Hinglish), invoice and prescription reading, natural-language reports and reorder suggestions. The key is encrypted at rest, never returned to the browser, and the assistant can only do what the signed-in user can already do; money and stock never move without a confirmation click. Without a key the platform runs exactly as before. Details in `docs/PHASES.md` (Phase 11) and `docs/SECURITY.md`.
+
 ## Scripts
 
 ```bash

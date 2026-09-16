@@ -2,9 +2,11 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import type { PrescriptionDto, AttachmentRef } from '@pharmaos/shared';
 import { useCreatePrescription, useUpdatePrescription } from './api';
+import { useAiAvailable, useExtractPrescription } from '@/features/ai/api';
+import { useSession } from '@/stores/session';
 import { errorMessage } from '@/lib/api-client';
 import { dateInput } from '@/lib/format';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
@@ -30,6 +32,9 @@ export function PrescriptionDialog({ open, onOpenChange, prescription, defaultCu
   const [items, setItems] = React.useState<Item[]>([newItem()]);
   const [files, setFiles] = React.useState<AttachmentRef[]>([]);
   const [notes, setNotes] = React.useState('');
+  const userId = useSession((s) => s.me?.user.id ?? 'anon');
+  const ai = useAiAvailable('invoiceReading');
+  const extract = useExtractPrescription();
   React.useEffect(() => {
     if (!open) return;
     if (prescription) {
@@ -38,8 +43,43 @@ export function PrescriptionDialog({ open, onOpenChange, prescription, defaultCu
       setFiles(prescription.files as AttachmentRef[]); setNotes(prescription.notes);
     } else {
       setCustomerId(defaultCustomerId ?? null); setDoctorName(''); setDoctorRegNo(''); setHospital(''); setDate(dateInput(new Date())); setValidUntil(''); setDiagnosis(''); setItems([newItem()]); setFiles([]); setNotes('');
+      // Draft prepared by the AI assistant (nothing saved yet): prefill for review.
+      try {
+        const key = `pharmaos.prescriptionDraft.${userId}`;
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          localStorage.removeItem(key);
+          const d = JSON.parse(raw) as { customerId?: string | null; doctorName?: string; doctorRegNo?: string; hospital?: string; prescriptionDate?: string; diagnosis?: string; items?: { medicine: string; dosage?: string; duration?: string; productId?: string | null }[] };
+          if (d.customerId) setCustomerId(d.customerId);
+          if (d.doctorName) setDoctorName(d.doctorName);
+          if (d.doctorRegNo) setDoctorRegNo(d.doctorRegNo);
+          if (d.hospital) setHospital(d.hospital);
+          if (d.prescriptionDate) setDate(d.prescriptionDate.slice(0, 10));
+          if (d.diagnosis) setDiagnosis(d.diagnosis);
+          if (d.items?.length) setItems(d.items.map((i) => ({ ...newItem(), medicine: i.medicine, dosage: i.dosage ?? '', duration: i.duration ?? '', productId: i.productId ?? undefined })));
+          toast.info('Draft from the AI assistant loaded. Check the medicines before saving.');
+        }
+      } catch {
+        /* ignore corrupt draft */
+      }
     }
-  }, [open, prescription, defaultCustomerId]);
+  }, [open, prescription, defaultCustomerId, userId]);
+  const readWithAi = (att: AttachmentRef) => {
+    extract.mutate({ attachment: att }, {
+      onSuccess: (r) => {
+        if (r.doctorName && !doctorName) setDoctorName(r.doctorName);
+        if (r.doctorRegNo && !doctorRegNo) setDoctorRegNo(r.doctorRegNo);
+        if (r.hospital && !hospital) setHospital(r.hospital);
+        if (r.prescriptionDate) setDate(r.prescriptionDate.slice(0, 10));
+        if (r.diagnosis && !diagnosis) setDiagnosis(r.diagnosis);
+        if (r.items.length) setItems((it) => [...it.filter((x) => x.medicine.trim()), ...r.items.map((i) => ({ ...newItem(), medicine: i.medicine, dosage: i.dosage, duration: i.duration, productId: i.productId ?? undefined }))]);
+        const unsure = r.items.filter((i) => i.confidence !== 'high').length;
+        toast.success(`${r.items.length} medicine${r.items.length === 1 ? '' : 's'} read from the prescription.${unsure ? ` ${unsure} need${unsure === 1 ? 's' : ''} a careful check.` : ''}`);
+        for (const w of r.warnings) toast.warning(w);
+      },
+      onError: (e) => toast.error(errorMessage(e)),
+    });
+  };
   const pending = create.isPending || update.isPending;
   const submit = () => {
     if (!customerId || !doctorName.trim() || !date) return toast.error('Customer, doctor and date are required.');
@@ -77,7 +117,7 @@ export function PrescriptionDialog({ open, onOpenChange, prescription, defaultCu
             <Button variant="secondary" size="sm" className="mt-2" onClick={() => setItems((it) => [...it, newItem()])}><Plus className="h-3.5 w-3.5" /> Add medicine</Button>
           </div>
           <div>
-            <div className="mb-1 flex items-center justify-between"><span className="text-[13px] font-medium">Scans / photos</span><FileUpload purpose="prescription" multiple accept="image/*,.pdf" onUploaded={(refs) => setFiles((f) => [...f, ...refs].slice(0, 10))} label="Upload" /></div>
+            <div className="mb-1 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">Scans / photos</span><div className="flex items-center gap-2">{ai.available && files.length ? <Button variant="secondary" size="sm" loading={extract.isPending} onClick={() => readWithAi(files[files.length - 1]!)} title="Reads the last uploaded file and fills the medicines for your review"><Sparkles className="h-3.5 w-3.5" /> Read with AI</Button> : null}<FileUpload purpose="prescription" multiple accept="image/*,.pdf" onUploaded={(refs) => setFiles((f) => [...f, ...refs].slice(0, 10))} label="Upload" /></div></div>
             <AttachmentList items={files} onRemove={(pid) => setFiles((f) => f.filter((x) => x.publicId !== pid))} />
           </div>
           <FormField label="Notes" htmlFor="rx-notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
