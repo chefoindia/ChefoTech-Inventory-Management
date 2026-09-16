@@ -49,6 +49,21 @@ test.describe('application shell and sign-in', () => {
     expect(box.headerHeight, 'the header should keep its full height').toBeGreaterThanOrEqual(64);
   });
 
+  test('a back arrow is available on every screen except the dashboard', async ({ page }) => {
+    const api = await pwRequest.newContext();
+    await registerAndLogin(page, api);
+    const back = page.getByRole('button', { name: 'Go back' });
+    await expect(back, 'the dashboard is the home screen, nothing to go back to').toHaveCount(0);
+    for (const path of ['/customers', '/products', '/settings/organization', '/reports', '/inventory']) {
+      await page.goto(path);
+      await expect(back, `${path} should offer a back arrow`).toBeVisible();
+    }
+    await page.goto('/customers');
+    await page.goto('/settings/users');
+    await back.click();
+    await expect(page).toHaveURL(/\/customers/);
+  });
+
   test('content fills the window on wide screens instead of leaving growing side gaps', async ({ page }) => {
     const api = await pwRequest.newContext();
     await page.setViewportSize({ width: 1280, height: 800 });

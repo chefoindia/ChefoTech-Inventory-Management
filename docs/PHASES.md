@@ -90,7 +90,7 @@ Every organization can bring its own Google Gemini API key; nothing AI-related r
 - [x] Nothing financial happens without a click: drafts open in the POS / purchase / prescription forms for review; payments and emails show a confirmation dialog that then calls the normal endpoints with an idempotency key. Every proposed action is written to the audit log.
 - [x] Document understanding: **Read invoice with AI** on the purchase form (products matched to the catalogue with candidate pickers, batch/expiry/rate/MRP/GST, confidence per line, review dialog before anything is filled) and **Read with AI** on the prescription dialog
 - [x] "What is this?" help on every page header (`PageHeader help=…`) plus `AskAi` buttons for field-level questions; cheaper lite model for help questions
-- [x] Failure handling: friendly messages for missing key, quota, rate limit, timeout, blocked content and monthly cap; the assistant never throws into the page. Usage per request in `AiUsage` (400-day TTL).
+- [x] Failure handling: friendly messages for missing key, quota, rate limit, timeout, blocked content and monthly cap; the assistant never throws into the page. Usage per request in `AiUsage` (400-day TTL). Model ids are resolved against the models the organization's key actually lists, so a valid key is never told "model not available".
 - [x] Tests (`apps/api/src/tests/ai.test.ts`): secret box, disconnected state, invalid key rejected, key masking, settings RBAC, tool loop, usage tracking, payment proposal leaves balances unchanged
 
 ## Phase 12 — Launch polish: ChefoTech brand, marketing site, SEO, performance [x]

@@ -1,6 +1,45 @@
+import { logger } from '@/lib/logger';
 import { AiProviderError, type AiGenerateRequest, type AiGenerateResult, type AiMessage, type AiProvider } from './provider';
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+/** Models that cannot answer a chat/tool request even though the key lists them. */
+const NOT_CHAT = /embedding|aqa|imagen|veo|image-generation|tts|audio|learnlm|gemma/i;
+
+/** Google's own message, trimmed and stripped of anything key-shaped, for the operator's eyes. */
+function googleMessage(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string; status?: string } };
+    return (parsed.error?.message ?? '').replace(/AIza[0-9A-Za-z_-]{10,}/g, '***').slice(0, 300);
+  } catch {
+    return body.replace(/AIza[0-9A-Za-z_-]{10,}/g, '***').slice(0, 300);
+  }
+}
+
+/**
+ * Picks the closest model this key can actually call. Google renames and retires model ids over
+ * time and different projects see different lists, so the configured name is treated as a
+ * preference, not a guarantee.
+ */
+export function pickClosestModel(requested: string, available: string[]): string | undefined {
+  const usable = available.filter((m) => !NOT_CHAT.test(m));
+  if (!usable.length) return undefined;
+  if (usable.includes(requested)) return requested;
+  const wantsLite = /lite/i.test(requested);
+  const wantsPro = /pro/i.test(requested);
+  const score = (m: string): number => {
+    let s = 0;
+    if (/lite/i.test(m) === wantsLite) s += 30;
+    if (/pro/i.test(m) === wantsPro) s += 25;
+    if (/flash/i.test(m) && !wantsPro) s += 15;
+    const version = Number.parseFloat(/(\d+\.\d+)/.exec(m)?.[1] ?? '0');
+    s += Math.min(version, 9) * 6;
+    if (/latest/i.test(m)) s += 4;
+    if (/(exp|preview|thinking|native|dialog)/i.test(m)) s -= 35;
+    return s;
+  };
+  return [...usable].sort((a, b) => score(b) - score(a))[0];
+}
 
 interface GeminiPart {
   text?: string;
@@ -26,14 +65,19 @@ function mapHttpError(status: number, body: string): AiProviderError {
   if (status === 400 && lower.includes('api key')) return new AiProviderError('INVALID_KEY', 'The Gemini API key was rejected. Check it in Settings → AI.');
   if (status === 401 || status === 403) return new AiProviderError('INVALID_KEY', 'The Gemini API key is invalid or has no access to this model.');
   if (status === 429) return new AiProviderError(lower.includes('quota') ? 'QUOTA' : 'RATE_LIMIT', lower.includes('quota') ? 'The Gemini quota for this key is used up.' : 'Gemini is rate-limiting requests; try again in a moment.');
-  if (status === 404) return new AiProviderError('UNAVAILABLE', 'The configured Gemini model is not available for this key.');
+  if (status === 404) return new AiProviderError('UNAVAILABLE', 'The configured Gemini model is not available for this key. Open Settings → AI & Gemini and pick one of the models your key lists.');
   if (status >= 500) return new AiProviderError('UNAVAILABLE', 'Gemini is temporarily unavailable.');
-  return new AiProviderError('BAD_RESPONSE', `Gemini returned an unexpected response (${status}).`);
+  const detail = googleMessage(body);
+  return new AiProviderError('BAD_RESPONSE', detail ? `Gemini rejected the request: ${detail}` : `Gemini returned an unexpected response (${status}).`);
 }
 
 /** Google Gemini via the REST API; the key never leaves the server. */
 export class GeminiProvider implements AiProvider {
   readonly name = 'gemini';
+  /** Model ids this key can call, fetched once per instance. */
+  private models: string[] | null = null;
+  /** Configured id → id that actually worked, so a fallback is resolved once per instance. */
+  private readonly resolved = new Map<string, string>();
   constructor(private readonly apiKey: string) {}
 
   private async call(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -49,15 +93,27 @@ export class GeminiProvider implements AiProvider {
     }
   }
 
-  async test(): Promise<{ ok: boolean; message: string; models?: string[] }> {
-    const res = await this.call('/models?pageSize=50', { method: 'GET' }, 15_000);
-    if (!res.ok) {
-      const err = mapHttpError(res.status, await res.text());
-      return { ok: false, message: err.message };
-    }
+  /** Chat-capable models this key may call. Cached for the life of the instance. */
+  async listModels(): Promise<string[]> {
+    if (this.models) return this.models;
+    const res = await this.call('/models?pageSize=200', { method: 'GET' }, 15_000);
+    if (!res.ok) throw mapHttpError(res.status, await res.text());
     const body = (await res.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
-    const models = (body.models ?? []).filter((m) => m.supportedGenerationMethods?.includes('generateContent')).map((m) => m.name.replace(/^models\//, ''));
-    return { ok: true, message: `Connected. ${models.length} models available.`, models };
+    this.models = (body.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m) => m.name.replace(/^models\//, ''))
+      .filter((m) => !NOT_CHAT.test(m));
+    return this.models;
+  }
+
+  async test(): Promise<{ ok: boolean; message: string; models?: string[] }> {
+    try {
+      const models = await this.listModels();
+      if (!models.length) return { ok: false, message: 'The key works but lists no chat models. Enable the Gemini API for this key in Google AI Studio.' };
+      return { ok: true, message: `Connected. ${models.length} chat models available, including ${models.slice(0, 3).join(', ')}.`, models };
+    } catch (err) {
+      return { ok: false, message: err instanceof AiProviderError ? err.message : 'Could not reach Gemini.' };
+    }
   }
 
   async generate(req: AiGenerateRequest): Promise<AiGenerateResult> {
@@ -76,17 +132,49 @@ export class GeminiProvider implements AiProvider {
     };
     if (req.tools?.length) payload.tools = [{ functionDeclarations: req.tools }];
 
-    let res: Response | null = null;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      res = await this.call(`/models/${req.model}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }, req.timeoutMs ?? 45_000);
-      if (res.status === 429 || res.status === 503) {
-        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
-        continue;
+    const send = async (model: string): Promise<Response> => {
+      let out: Response | null = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        out = await this.call(`/models/${model}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }, req.timeoutMs ?? 45_000);
+        if (out.status === 429 || out.status === 503) {
+          await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+          continue;
+        }
+        break;
       }
-      break;
+      if (!out) throw new AiProviderError('UNAVAILABLE', 'Gemini is temporarily unavailable.');
+      return out;
+    };
+
+    let model = this.resolved.get(req.model) ?? req.model;
+    let res = await send(model);
+
+    // Google retires and renames model ids, and different keys see different lists. When the
+    // configured id is not callable, fall back to the closest model this key actually offers
+    // rather than telling a pharmacy with a perfectly good key that AI is unavailable.
+    if (res.status === 404) {
+      const body = await res.text();
+      let available: string[] = [];
+      try {
+        available = await this.listModels();
+      } catch {
+        throw mapHttpError(404, body);
+      }
+      const fallback = pickClosestModel(model, available);
+      if (!fallback || fallback === model) {
+        throw new AiProviderError('UNAVAILABLE', available.length ? `Gemini has no model called "${model}" for this key. Available models: ${available.slice(0, 6).join(', ')}. Pick one in Settings → AI & Gemini.` : mapHttpError(404, body).message);
+      }
+      logger.warn({ requested: model, fallback, detail: googleMessage(body) }, 'gemini model unavailable for this key; falling back');
+      this.resolved.set(req.model, fallback);
+      model = fallback;
+      res = await send(model);
     }
-    if (!res) throw new AiProviderError('UNAVAILABLE', 'Gemini is temporarily unavailable.');
-    if (!res.ok) throw mapHttpError(res.status, await res.text());
+
+    if (!res.ok) {
+      const body = await res.text();
+      logger.warn({ status: res.status, model, detail: googleMessage(body) }, 'gemini request failed');
+      throw mapHttpError(res.status, body);
+    }
 
     const body = (await res.json()) as {
       candidates?: { content?: { parts?: GeminiPart[] }; finishReason?: string }[];
@@ -101,6 +189,7 @@ export class GeminiProvider implements AiProvider {
       functionCalls: parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall!.name, args: p.functionCall!.args ?? {} })),
       usage: { inputTokens: body.usageMetadata?.promptTokenCount ?? 0, outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0 },
       finishReason: cand?.finishReason ?? 'STOP',
+      modelUsed: model,
     };
   }
 }

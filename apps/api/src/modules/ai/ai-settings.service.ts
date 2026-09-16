@@ -1,11 +1,11 @@
 import type { Types } from 'mongoose';
-import type { AiSettingsDto, AiSettingsPatch, AiFeature, AiModel } from '@pharmaos/shared';
+import type { AiSettingsDto, AiSettingsPatch, AiFeature } from '@pharmaos/shared';
 import { AiSettingsModel, AiUsageModel, type AiSettingsDoc } from '@/models/ai-settings.model';
 import type { RequestContext } from '@/lib/context';
 import { BusinessRuleError } from '@/lib/errors';
 import { sealSecret, openSecret, maskSecret } from '@/lib/secret-box';
 import { audit } from '@/services/audit.service';
-import { GeminiProvider } from '@/services/ai/gemini';
+import { GeminiProvider, pickClosestModel } from '@/services/ai/gemini';
 import type { AiProvider } from '@/services/ai/provider';
 
 async function ensureDoc(organizationId: Types.ObjectId): Promise<AiSettingsDoc> {
@@ -26,6 +26,20 @@ export async function monthlyUsage(organizationId: Types.ObjectId) {
   return { month: start.toISOString().slice(0, 7), requests: row?.requests ?? 0, inputTokens: row?.inputTokens ?? 0, outputTokens: row?.outputTokens ?? 0 };
 }
 
+/**
+ * Keeps the configured model ids callable: if the key does not offer the stored id (Google renames
+ * and retires them, and each project sees a different list), snap to the closest one it does offer.
+ */
+function modelsFor(available: string[] | undefined, model?: string, liteModel?: string): Record<string, string> {
+  if (!available?.length) return {};
+  const out: Record<string, string> = {};
+  const main = pickClosestModel(model || 'gemini-2.5-flash', available);
+  const lite = pickClosestModel(liteModel || 'gemini-2.5-flash-lite', available);
+  if (main && main !== model) out.model = main;
+  if (lite && lite !== liteModel) out.liteModel = lite;
+  return out;
+}
+
 export async function toDto(doc: AiSettingsDoc): Promise<AiSettingsDto> {
   const usage = await monthlyUsage(doc.organizationId);
   const limit = doc.monthlyTokenLimit ?? 0;
@@ -38,8 +52,9 @@ export async function toDto(doc: AiSettingsDoc): Promise<AiSettingsDto> {
     lastTestOk: doc.lastTestOk ?? null,
     lastTestMessage: doc.lastTestMessage ?? '',
     features: (doc.features ?? []) as AiFeature[],
-    model: (doc.model ?? 'gemini-2.5-flash') as AiModel,
-    liteModel: (doc.liteModel ?? 'gemini-2.5-flash-lite') as AiModel,
+    model: doc.model ?? 'gemini-2.5-flash',
+    liteModel: doc.liteModel ?? 'gemini-2.5-flash-lite',
+    availableModels: doc.availableModels ?? [],
     temperature: doc.temperature ?? 0.2,
     maxOutputTokens: doc.maxOutputTokens ?? 2048,
     timeoutMs: doc.timeoutMs ?? 45_000,
@@ -67,10 +82,10 @@ export async function setApiKey(ctx: RequestContext, apiKey: string): Promise<Ai
   const provider = new GeminiProvider(apiKey);
   const test = await provider.test();
   if (!test.ok) throw new BusinessRuleError(test.message);
-  await ensureDoc(ctx.organizationId);
+  const doc = await ensureDoc(ctx.organizationId);
   await AiSettingsModel.updateOne(
     { organizationId: ctx.organizationId },
-    { $set: { sealedApiKey: sealSecret(apiKey), keyLast4: apiKey.slice(-4), keyAddedAt: new Date(), lastTestedAt: new Date(), lastTestOk: true, lastTestMessage: test.message, enabled: true, updatedBy: ctx.userId } },
+    { $set: { sealedApiKey: sealSecret(apiKey), keyLast4: apiKey.slice(-4), keyAddedAt: new Date(), lastTestedAt: new Date(), lastTestOk: true, lastTestMessage: test.message, availableModels: test.models ?? [], enabled: true, updatedBy: ctx.userId, ...modelsFor(test.models, doc.model, doc.liteModel) } },
   );
   await audit(ctx, { action: 'ai.keyConnected', entityType: 'AiSettings', summary: `Connected a Gemini API key (…${apiKey.slice(-4)})` });
   return getSettings(ctx);
@@ -87,7 +102,10 @@ export async function testConnection(ctx: RequestContext): Promise<AiSettingsDto
   if (!doc.sealedApiKey) throw new BusinessRuleError('No Gemini API key is stored yet.');
   const provider = new GeminiProvider(openSecret(doc.sealedApiKey));
   const test = await provider.test();
-  await AiSettingsModel.updateOne({ organizationId: ctx.organizationId }, { $set: { lastTestedAt: new Date(), lastTestOk: test.ok, lastTestMessage: test.message } });
+  await AiSettingsModel.updateOne(
+    { organizationId: ctx.organizationId },
+    { $set: { lastTestedAt: new Date(), lastTestOk: test.ok, lastTestMessage: test.message, ...(test.ok ? { availableModels: test.models ?? [], ...modelsFor(test.models, doc.model, doc.liteModel) } : {}) } },
+  );
   return getSettings(ctx);
 }
 

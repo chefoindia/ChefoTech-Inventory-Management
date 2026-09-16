@@ -10,8 +10,16 @@ const VIEWPORTS = [
 ];
 
 async function noHorizontalOverflow(page: Page, label: string) {
-  const { scrollWidth, innerWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
-  expect(scrollWidth, `${label}: page scrolls horizontally (${scrollWidth} > ${innerWidth})`).toBeLessThanOrEqual(innerWidth + 1);
+  const { scrollWidth, innerWidth, culprits } = await page.evaluate(() => {
+    const w = window.innerWidth;
+    const culprits: string[] = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && r.right > w + 1) culprits.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 4).join('.')} (w=${Math.round(r.width)}, right=${Math.round(r.right)})`);
+    }
+    return { scrollWidth: document.documentElement.scrollWidth, innerWidth: w, culprits: culprits.slice(0, 5) };
+  });
+  expect(scrollWidth, `${label}: page scrolls horizontally (${scrollWidth} > ${innerWidth}); widest: ${culprits.join(' | ') || 'none measured'}`).toBeLessThanOrEqual(innerWidth + 1);
 }
 
 async function registerAndLogin(page: Page, api: APIRequestContext) {

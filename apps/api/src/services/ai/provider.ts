@@ -40,6 +40,8 @@ export interface AiGenerateResult {
   functionCalls: { name: string; args: Record<string, unknown> }[];
   usage: { inputTokens: number; outputTokens: number };
   finishReason: string;
+  /** The model that actually answered; differs from the request when the configured one was unavailable. */
+  modelUsed?: string;
 }
 
 export interface AiProvider {
@@ -47,6 +49,8 @@ export interface AiProvider {
   generate(req: AiGenerateRequest): Promise<AiGenerateResult>;
   /** Cheap connectivity/key check. */
   test(): Promise<{ ok: boolean; message: string; models?: string[] }>;
+  /** Models this key may actually call, newest-capable first. Used to validate the configured model. */
+  listModels?(): Promise<string[]>;
 }
 
 /** Errors the UI can explain in plain words; `code` never carries provider internals. */

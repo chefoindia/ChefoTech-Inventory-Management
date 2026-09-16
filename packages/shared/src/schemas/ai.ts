@@ -17,15 +17,19 @@ export const AI_FEATURE_LABELS: Record<AiFeature, { label: string; description: 
   voiceInput: { label: 'Voice input', description: 'Speak to the assistant instead of typing (browser support required).' },
 };
 
+/** Suggested defaults. The real choice comes from the models the organization's own key lists. */
 export const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'] as const;
 export type AiModel = (typeof AI_MODELS)[number];
+
+/** Google renames and retires model ids, so any well-formed id the key supports is accepted. */
+export const aiModelIdSchema = z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/, 'Use a model id such as gemini-2.5-flash');
 
 export const aiSettingsPatchSchema = z.object({
   enabled: z.boolean().optional(),
   features: z.array(z.enum(AI_FEATURES)).optional(),
-  model: z.enum(AI_MODELS).optional(),
+  model: aiModelIdSchema.optional(),
   /** Cheaper model for help/explanations and short lookups. */
-  liteModel: z.enum(AI_MODELS).optional(),
+  liteModel: aiModelIdSchema.optional(),
   temperature: z.number().min(0).max(1).optional(),
   maxOutputTokens: z.number().int().min(256).max(8192).optional(),
   timeoutMs: z.number().int().min(5_000).max(120_000).optional(),
@@ -48,8 +52,10 @@ export interface AiSettingsDto {
   lastTestOk: boolean | null;
   lastTestMessage: string;
   features: AiFeature[];
-  model: AiModel;
-  liteModel: AiModel;
+  model: string;
+  liteModel: string;
+  /** Chat models this organization's key can actually call, from the last successful test. */
+  availableModels: string[];
   temperature: number;
   maxOutputTokens: number;
   timeoutMs: number;

@@ -33,6 +33,7 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 - Backend: `apps/api/src/modules/ai/` (settings, tools, chat/extract service, routes at `/api/v1/ai`), provider abstraction in `apps/api/src/services/ai/`. Keys are sealed with `lib/secret-box.ts`; never log or return them.
 - Adding an AI capability = adding a tool in `modules/ai/tools.ts` with a `permission` (and optional `feature`) that calls an existing service. Tools must not touch models directly and must return proposals (`actions`) for anything that changes money, stock or sends messages.
 - Frontend: `features/ai/api.ts`, `stores/assistant.ts`, `components/ai/assistant.tsx` (`AiAssistant` mounted in the app shell, `AskAi`, `AiDashboardCard`). `PageHeader` shows a "What is this?" button automatically; pass `help="…"` for a better question or `help={false}` to hide it.
+- Model ids are a preference, not a constant: Google renames and retires them and every key sees a different catalogue. `GeminiProvider.listModels()` is the source of truth, settings store `availableModels`, and `pickClosestModel()` snaps an unavailable id onto the nearest one the key offers (also at request time, on a 404).
 - Tests stub `GeminiProvider.prototype.generate/test` with `vi.spyOn`; no test calls Google.
 
 ## Adding a module (pattern)

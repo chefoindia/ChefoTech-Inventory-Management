@@ -4,7 +4,7 @@ import { app, BASE, registerTenant, addMember, auth, type TestTenant } from './h
 import { createTabletProduct, unitIds } from './catalog.test';
 import { postOpening } from './inventory.test';
 import { sealSecret, openSecret, maskSecret } from '@/lib/secret-box';
-import { GeminiProvider } from '@/services/ai/gemini';
+import { GeminiProvider, pickClosestModel } from '@/services/ai/gemini';
 import type { AiGenerateRequest, AiGenerateResult } from '@/services/ai/provider';
 
 const key = () => `k-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -128,5 +128,33 @@ describe('AI: assistant uses tools through real services with the caller\'s perm
     expect(action).toMatchObject({ partyType: 'customer', partyId: cust.body.data.id, amountMinor: 50_000, method: 'upi' });
     const after = await request(app).get(`${BASE}/customers/${cust.body.data.id}`).set(auth(t.accessToken));
     expect(after.body.data.balanceMinor).toBe(0);
+  });
+});
+
+describe('AI: model availability', () => {
+  it('picks the closest model a key actually offers', () => {
+    const available = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'text-embedding-004', 'gemini-2.0-flash-exp'];
+    expect(pickClosestModel('gemini-2.0-flash', available)).toBe('gemini-2.0-flash');
+    expect(pickClosestModel('gemini-2.5-flash', available)).toBe('gemini-2.0-flash');
+    expect(pickClosestModel('gemini-2.5-flash-lite', available)).toBe('gemini-2.0-flash-lite');
+    expect(pickClosestModel('gemini-2.5-pro', available)).toBe('gemini-1.5-pro');
+    // Never proposes a model that cannot answer a chat request.
+    expect(pickClosestModel('gemini-2.5-flash', ['text-embedding-004'])).toBeUndefined();
+  });
+
+  it('stores the models the key reports and moves an unsupported configured model onto one that works', async () => {
+    const t = await registerTenant();
+    vi.spyOn(GeminiProvider.prototype, 'test').mockResolvedValue({ ok: true, message: 'Connected. 2 chat models available.', models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite'] });
+    const saved = await request(app).post(`${BASE}/ai/key`).set(hdr(t)).send({ apiKey: 'AIzaSyEXAMPLEKEY1234567890ABCD' });
+    expect(saved.status, saved.text).toBe(200);
+    expect(saved.body.data.availableModels).toEqual(['gemini-2.0-flash', 'gemini-2.0-flash-lite']);
+    // The defaults (gemini-2.5-*) are not in this key's list, so they are snapped to what is.
+    expect(saved.body.data.model).toBe('gemini-2.0-flash');
+    expect(saved.body.data.liteModel).toBe('gemini-2.0-flash-lite');
+
+    // An admin may still choose any id their key supports.
+    const patched = await request(app).patch(`${BASE}/ai/settings`).set(hdr(t)).send({ model: 'gemini-2.0-flash-lite' });
+    expect(patched.status, patched.text).toBe(200);
+    expect(patched.body.data.model).toBe('gemini-2.0-flash-lite');
   });
 });

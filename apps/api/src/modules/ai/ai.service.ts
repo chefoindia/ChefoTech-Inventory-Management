@@ -103,12 +103,15 @@ export async function chat(ctx: RequestContext, input: AiChatInput): Promise<AiC
   const lastUser = input.messages[input.messages.length - 1]?.content ?? '';
   const simple = /^(what is this|what do i do here|how do i|explain|help|kya hai|kaise|samjhao)/i.test(lastUser) && !input.attachments.length;
   const model = simple ? (settings.liteModel ?? 'gemini-2.5-flash-lite') : (settings.model ?? 'gemini-2.5-flash');
+  // The provider may substitute a model this key can actually call; record what answered.
+  let modelUsed = model;
   const system = systemPrompt(ctx, input, settings.language ?? 'auto', features);
 
   try {
     let reply = '';
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
       const res = await provider.generate({ model, system, messages: history, tools: tools.map((t) => t.declaration), temperature: settings.temperature ?? 0.2, maxOutputTokens: settings.maxOutputTokens ?? 2048, timeoutMs: settings.timeoutMs ?? 45_000 });
+      modelUsed = res.modelUsed ?? modelUsed;
       usage.inputTokens += res.usage.inputTokens;
       usage.outputTokens += res.usage.outputTokens;
       if (!res.functionCalls.length || round === MAX_TOOL_ROUNDS) {
@@ -131,13 +134,13 @@ export async function chat(ctx: RequestContext, input: AiChatInput): Promise<AiC
       }
       history.push({ role: 'user', parts: responses });
     }
-    await recordUsage(ctx, { feature: 'assistant', model, ...usage, durationMs: Date.now() - started, ok: true, toolsUsed });
+    await recordUsage(ctx, { feature: 'assistant', model: modelUsed, ...usage, durationMs: Date.now() - started, ok: true, toolsUsed });
     if (actions.some((a) => a.type !== 'navigate')) await audit(ctx, { action: 'ai.actionProposed', entityType: 'AiAssistant', summary: `Assistant proposed: ${actions.filter((a) => a.type !== 'navigate').map((a) => a.label).join('; ').slice(0, 300)}`, metadata: { toolsUsed } });
     // de-duplicate actions by label, keep order
     const seen = new Set<string>();
     return { reply, actions: actions.filter((a) => (seen.has(a.label) ? false : (seen.add(a.label), true))).slice(0, 6), toolsUsed: [...new Set(toolsUsed)], usage };
   } catch (err) {
-    await recordUsage(ctx, { feature: 'assistant', model, ...usage, durationMs: Date.now() - started, ok: false, error: (err as Error).message.slice(0, 200), toolsUsed });
+    await recordUsage(ctx, { feature: 'assistant', model: modelUsed, ...usage, durationMs: Date.now() - started, ok: false, error: (err as Error).message.slice(0, 200), toolsUsed });
     if (!(err instanceof AiProviderError) && !(err instanceof BusinessRuleError)) logger.error({ err }, 'ai chat failed');
     return { reply: friendly(err), actions: [], toolsUsed, usage };
   }

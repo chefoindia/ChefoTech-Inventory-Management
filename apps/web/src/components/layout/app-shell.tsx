@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  ArrowLeft,
   LayoutDashboard,
   ShoppingCart,
   Truck,
@@ -107,7 +108,7 @@ function OutletSwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-9 max-w-[260px] items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 text-sm shadow-sm hover:bg-surface-subtle"
+          className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-2.5 text-sm shadow-sm hover:bg-surface-subtle sm:max-w-[260px] sm:flex-initial sm:px-3"
           aria-label="Switch outlet"
         >
           <Store className="h-4 w-4 text-fg-subtle" />
@@ -180,6 +181,40 @@ function UserMenu() {
   );
 }
 
+/** Parent screen for a path: /customers/123 → /customers, /settings/data → /settings. */
+function parentPath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length <= 1) return '/dashboard';
+  return `/${parts.slice(0, -1).join('/')}`;
+}
+
+/**
+ * Back arrow in the top bar. Uses browser history when there is somewhere to return to, and
+ * otherwise goes up one level, so a shared deep link never sends the user off the site.
+ */
+function BackButton() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [canGoBack, setCanGoBack] = useState(false);
+  useEffect(() => {
+    setCanGoBack(typeof window !== 'undefined' && window.history.length > 1);
+  }, [pathname]);
+  if (pathname === '/dashboard') return null;
+  const parent = parentPath(pathname);
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="shrink-0"
+      aria-label="Go back"
+      title="Back"
+      onClick={() => (canGoBack ? router.back() : router.push(parent))}
+    >
+      <ArrowLeft className="h-4 w-4" />
+    </Button>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const me = useSession((s) => s.me);
@@ -221,12 +256,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-[var(--radius-control)] focus:bg-primary-600 focus:px-3 focus:py-1.5 focus:text-sm focus:text-white">Skip to content</a>
         <ConnectionBanner />
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-          <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 sm:gap-3 sm:px-4">
+          <Button variant="ghost" size="icon-sm" className="shrink-0 lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
             <Menu className="h-4 w-4" />
           </Button>
+          <BackButton />
           <OutletSwitcher />
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <UserMenu />
           </div>
         </header>

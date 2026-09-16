@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Sparkles, KeyRound, Plug, Trash2, Save, CheckCircle2, XCircle } from 'lucide-react';
-import { AI_FEATURES, AI_FEATURE_LABELS, AI_MODELS, type AiFeature, type AiModel, type AiSettingsDto } from '@pharmaos/shared';
+import { AI_FEATURES, AI_FEATURE_LABELS, AI_MODELS, type AiFeature, type AiSettingsDto } from '@pharmaos/shared';
 import { useAiSettings, useSetAiKey, useRemoveAiKey, useTestAi, useUpdateAiSettings } from '@/features/ai/api';
 import { usePermission } from '@/features/auth/permissions';
 import { useAssistant } from '@/stores/assistant';
@@ -120,13 +120,15 @@ function ModelCard({ s, canManage }: { s: AiSettingsDto; canManage: boolean }) {
   const update = useUpdateAiSettings();
   const [form, setForm] = useState({ model: s.model, liteModel: s.liteModel, temperature: s.temperature, maxOutputTokens: s.maxOutputTokens, timeoutMs: s.timeoutMs, monthlyTokenLimit: s.monthlyTokenLimit, language: s.language });
   useEffect(() => setForm({ model: s.model, liteModel: s.liteModel, temperature: s.temperature, maxOutputTokens: s.maxOutputTokens, timeoutMs: s.timeoutMs, monthlyTokenLimit: s.monthlyTokenLimit, language: s.language }), [s]);
+  // Google's catalogue differs per key, so offer exactly what this key reported at the last test.
+  const options = Array.from(new Set([...(s.availableModels.length ? s.availableModels : AI_MODELS), form.model, form.liteModel].filter(Boolean)));
   return (
     <Card>
       <CardHeader><CardTitle>Model, language & limits</CardTitle><CardDescription>Cheaper model for quick help, stronger model for reading invoices and analysis. A monthly token limit keeps cost predictable.</CardDescription></CardHeader>
       <CardContent>
         <FormGrid className="sm:grid-cols-3">
-          <FormField label="Main model" htmlFor="ai-model" hint="Chat, reports, invoice reading."><Select value={form.model} disabled={!canManage} onChange={(e) => setForm({ ...form, model: e.target.value as AiModel })}>{AI_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}</Select></FormField>
-          <FormField label="Light model" htmlFor="ai-lite" hint="“What is this?” help and short lookups."><Select value={form.liteModel} disabled={!canManage} onChange={(e) => setForm({ ...form, liteModel: e.target.value as AiModel })}>{AI_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}</Select></FormField>
+          <FormField label="Main model" htmlFor="ai-model" hint="Chat, reports, invoice reading."><Select value={form.model} disabled={!canManage} onChange={(e) => setForm({ ...form, model: e.target.value })}>{options.map((m) => <option key={m} value={m}>{m}</option>)}</Select></FormField>
+          <FormField label="Light model" htmlFor="ai-lite" hint="“What is this?” help and short lookups."><Select value={form.liteModel} disabled={!canManage} onChange={(e) => setForm({ ...form, liteModel: e.target.value })}>{options.map((m) => <option key={m} value={m}>{m}</option>)}</Select></FormField>
           <FormField label="Reply language" htmlFor="ai-lang"><Select value={form.language} disabled={!canManage} onChange={(e) => setForm({ ...form, language: e.target.value as AiSettingsDto['language'] })}><option value="auto">Match the user (auto)</option><option value="en">Simple English</option><option value="hi">Hindi</option><option value="hinglish">Hinglish</option></Select></FormField>
           <FormField label="Creativity (temperature)" htmlFor="ai-temp" hint="Keep low for factual answers."><Input type="number" min={0} max={1} step={0.1} value={form.temperature} disabled={!canManage} onChange={(e) => setForm({ ...form, temperature: Number(e.target.value) })} /></FormField>
           <FormField label="Max reply tokens" htmlFor="ai-max"><Input type="number" min={256} max={8192} step={256} value={form.maxOutputTokens} disabled={!canManage} onChange={(e) => setForm({ ...form, maxOutputTokens: Number(e.target.value) })} /></FormField>

@@ -12,6 +12,8 @@ const aiSettingsSchema = new Schema(
     lastTestedAt: { type: Date, default: null },
     lastTestOk: { type: Boolean, default: null },
     lastTestMessage: { type: String, default: '' },
+    /** Chat models the key listed at the last successful test; drives the Settings dropdown. */
+    availableModels: { type: [String], default: [] },
     features: { type: [String], default: ['assistant', 'invoiceReading', 'smartInventory', 'reports', 'help', 'automation', 'voiceInput'] },
     model: { type: String, default: 'gemini-2.5-flash' },
     liteModel: { type: String, default: 'gemini-2.5-flash-lite' },
