@@ -17,7 +17,7 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   BREVO_API_KEY: z.string().optional().default(''),
-  EMAIL_FROM_NAME: z.string().default('PharmaOS'),
+  EMAIL_FROM_NAME: z.string().default('PharmaOS by ChefoTech'),
   EMAIL_FROM_ADDRESS: z.string().default('no-reply@localhost'),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
@@ -42,6 +42,8 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.string().optional().default(''),
   VAPID_SUBJECT: z.string().optional().default('mailto:support@localhost'),
   /** 32+ char secret used to encrypt per-organization AI keys at rest (defaults to the JWT secret). */
+  /** Where website enquiries (demo/contact) are emailed; leads are always stored in the database. */
+  LEADS_NOTIFY_EMAIL: z.string().email().optional(),
   AI_ENCRYPTION_KEY: z.string().optional().default(''),
   /** Signing secret for public document share links (defaults to the JWT secret). */
   SHARE_LINK_SECRET: z.string().optional().default(''),

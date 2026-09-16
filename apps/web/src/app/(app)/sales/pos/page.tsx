@@ -339,7 +339,7 @@ export default function PosPage() {
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-[1fr_380px]">
+      <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* left: search + cart */}
         <div className="flex min-w-0 flex-col border-r border-border">
           <div className="p-3"><ProductSearch onPick={addProduct} inputRef={searchRef} /></div>
@@ -380,7 +380,7 @@ export default function PosPage() {
                         </td>
                         <td className="px-2 py-1.5">
                           {canChooseBatch && l.product.batches?.length ? (
-                            <Select className="h-8 w-40 text-[12px]" value={l.batchId ?? ''} onChange={(e) => updateLine(l.key, { batchId: e.target.value || undefined })} aria-label="Batch">
+                            <Select className="h-8 w-36 text-[12px]" value={l.batchId ?? ''} onChange={(e) => updateLine(l.key, { batchId: e.target.value || undefined })} aria-label="Batch">
                               <option value="">Auto (FEFO)</option>
                               {l.product.batches.filter((b) => !b.isExpired).map((b) => <option key={b.batchId} value={b.batchId}>{b.batchNumber} · {formatDate(b.expiryDate, { month: 'short', year: '2-digit' })} · {b.qtyBase}</option>)}
                             </Select>
@@ -389,7 +389,7 @@ export default function PosPage() {
                           )}
                         </td>
                         <td className="px-2 py-1.5">
-                          <Select className="h-8 w-28 text-[12px]" value={l.unitId} onChange={(e) => updateLine(l.key, { unitId: e.target.value, unitPriceMinor: undefined })} aria-label="Unit">
+                          <Select className="h-8 w-24 text-[12px]" value={l.unitId} onChange={(e) => updateLine(l.key, { unitId: e.target.value, unitPriceMinor: undefined })} aria-label="Unit">
                             {l.product.units.filter((u) => u.allowLooseSale || u.unitId === l.product.pricingUnitId || u.factorToBase > 1).map((u) => <option key={u.unitId} value={u.unitId}>{u.unitName}</option>)}
                           </Select>
                         </td>
@@ -405,7 +405,7 @@ export default function PosPage() {
                           {ql[0] && ql[0].mrpPerUnitMinor !== (l.unitPriceMinor ?? price) ? <span className="block text-[11px] text-fg-subtle">MRP {money(ql[0].mrpPerUnitMinor)}</span> : null}
                         </td>
                         {canDiscount ? (
-                          <td className="px-2 py-1.5 text-right"><PercentInput className="h-8 w-20 text-[13px]" value={l.discountBps} onChange={(v) => updateLine(l.key, { discountBps: v ?? 0 })} aria-label="Line discount" /></td>
+                          <td className="px-2 py-1.5 text-right"><PercentInput className="h-8 w-[4.5rem] text-[13px]" value={l.discountBps} onChange={(v) => updateLine(l.key, { discountBps: v ?? 0 })} aria-label="Line discount" /></td>
                         ) : null}
                         <td className="px-2 py-1.5 text-right tabular font-medium">{money(total)}</td>
                         <td className="px-1 py-1.5"><Button variant="ghost" size="icon-sm" aria-label="Remove line" onClick={() => removeLine(l.key)}><Trash2 className="h-3.5 w-3.5" /></Button></td>

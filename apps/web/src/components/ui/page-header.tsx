@@ -26,7 +26,7 @@ export function PageHeader({
         </div>
         {description ? <p className="mt-1 text-[13px] text-fg-subtle">{description}</p> : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

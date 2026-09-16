@@ -30,6 +30,9 @@ Open http://localhost:3000, click **Start free trial**, and register your organi
 ## AI assistant (optional)
 Each organization can connect its own Google Gemini API key under **Settings → AI & Gemini**. That unlocks a page-aware assistant (English / Hindi / Hinglish), invoice and prescription reading, natural-language reports and reorder suggestions. The key is encrypted at rest, never returned to the browser, and the assistant can only do what the signed-in user can already do; money and stock never move without a confirmation click. Without a key the platform runs exactly as before. Details in `docs/PHASES.md` (Phase 11) and `docs/SECURITY.md`.
 
+## Public website & branding
+The marketing site (home, features, solutions, pricing, FAQ, demo, contact, legal) lives in `apps/web/src/app/(marketing)`. PharmaOS is presented as a ChefoTech product; set the company details in `apps/web/.env.local` (see `.env.example`: contact email/phone/address, social links, logo path, site URL, Search Console token, analytics provider). Nothing renders for values that are not set. Refresh product screenshots with `node apps/web/scripts/capture-screenshots.mjs` while the dev servers run.
+
 ## Scripts
 
 ```bash

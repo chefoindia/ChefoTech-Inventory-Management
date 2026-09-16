@@ -25,3 +25,5 @@ export * from './types/domain';
 export * from './types/inventory';
 export * from './types/transactions';
 export * from './schemas/ai';
+export * from './schemas/lead';
+export * from './plans';

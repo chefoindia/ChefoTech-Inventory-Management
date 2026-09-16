@@ -29,6 +29,7 @@ import { usePermission } from '@/features/auth/permissions';
 import { useUnreadCount } from '@/features/notifications/api';
 import { Logo } from './logo';
 import { ConnectionBanner } from './connection-status';
+import { Byline } from '@/components/marketing/brand';
 import { AiAssistant } from '@/components/ai/assistant';
 import { Button } from '@/components/ui/button';
 import {
@@ -201,6 +202,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="border-t border-border p-3 text-[12px] text-fg-subtle">
         <div className="truncate font-medium text-fg">{me?.organization.name}</div>
         <div className="truncate">Plan: {me?.organization.subscription.planKey} · {me?.organization.subscription.status}</div>
+        <Byline className="mt-2" />
       </div>
     </div>
   );

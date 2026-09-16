@@ -31,13 +31,13 @@ export function DateRangePicker({ value, onChange }: { value: DateRange; onChang
   const [preset, setPreset] = React.useState('30d');
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select className="h-8 w-44" value={preset} onChange={(e) => { setPreset(e.target.value); const p = PRESETS.find((x) => x.key === e.target.value); if (p) onChange(p.range()); }} aria-label="Date preset">
+      <Select className="h-8 w-full sm:w-44" value={preset} onChange={(e) => { setPreset(e.target.value); const p = PRESETS.find((x) => x.key === e.target.value); if (p) onChange(p.range()); }} aria-label="Date preset">
         {PRESETS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         <option value="custom">Custom</option>
       </Select>
-      <Input type="date" className="h-8 w-36" value={value.from} onChange={(e) => { setPreset('custom'); onChange({ ...value, from: e.target.value }); }} aria-label="From" />
+      <Input type="date" className="h-8 w-[calc(50%-1.25rem)] sm:w-36" value={value.from} onChange={(e) => { setPreset('custom'); onChange({ ...value, from: e.target.value }); }} aria-label="From" />
       <span className="text-[12px] text-fg-subtle">to</span>
-      <Input type="date" className="h-8 w-36" value={value.to} onChange={(e) => { setPreset('custom'); onChange({ ...value, to: e.target.value }); }} aria-label="To" />
+      <Input type="date" className="h-8 w-[calc(50%-1.25rem)] sm:w-36" value={value.to} onChange={(e) => { setPreset('custom'); onChange({ ...value, to: e.target.value }); }} aria-label="To" />
     </div>
   );
 }

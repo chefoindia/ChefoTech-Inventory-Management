@@ -32,6 +32,7 @@ import { registerNotificationEventHandlers } from '@/modules/notifications/notif
 import { reportsRouter } from '@/modules/reports/reports.routes';
 import { dashboardRouter } from '@/modules/dashboard/dashboard.routes';
 import { subscriptionRouter } from '@/modules/subscriptions/subscriptions.routes';
+import { leadsRouter } from '@/modules/leads/leads.routes';
 import { aiRouter } from '@/modules/ai/ai.routes';
 import { requireFeature } from '@/middleware/entitlement';
 import { authenticate } from '@/middleware/authenticate';
@@ -101,6 +102,7 @@ export function createApp(): Express {
   api.use('/dashboard', dashboardRouter);
   api.use('/subscription', subscriptionRouter);
   api.use('/ai', aiRouter);
+  api.use('/leads', leadsRouter);
   // Public, unauthenticated document links (signed tokens) live outside the API auth chain.
   app.use('/share', publicDocumentsRouter);
   app.use(env.API_BASE_PATH, api);

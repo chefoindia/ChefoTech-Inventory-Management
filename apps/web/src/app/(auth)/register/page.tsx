@@ -9,6 +9,8 @@ import { registerSchema, type RegisterInput } from '@pharmaos/shared';
 import { useRegister } from '@/features/auth/api';
 import { errorMessage } from '@/lib/api-client';
 import { applyServerErrors } from '@/lib/form-errors';
+import { track } from '@/lib/analytics';
+import { useRef } from 'react';
 import { GuestOnly } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField, FormGrid } from '@/components/ui/form-field';
@@ -25,10 +27,19 @@ export default function RegisterPage() {
     defaultValues: { organizationName: '', ownerName: '', email: '', phone: '', password: '', stateCode: '' },
   });
   const errors = form.formState.errors;
+  const started = useRef(false);
+  const onFirstInput = () => {
+    if (started.current) return;
+    started.current = true;
+    track('signup_started');
+  };
 
   const onSubmit = form.handleSubmit((values) => {
     register.mutate(values, {
-      onSuccess: () => router.replace('/dashboard'),
+      onSuccess: () => {
+        track('signup_completed');
+        router.replace('/dashboard');
+      },
       onError: (err) => applyServerErrors(err, form.setError),
     });
   });
@@ -43,7 +54,7 @@ export default function RegisterPage() {
           <CardDescription>Sets up your pharmacy, a main outlet and your owner account. 14-day trial, no card needed.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4" noValidate>
+          <form onSubmit={onSubmit} className="space-y-4" noValidate onInput={onFirstInput}>
             {serverError ? <Alert variant="danger">{serverError}</Alert> : null}
             <FormField label="Pharmacy / organization name" htmlFor="organizationName" error={errors.organizationName?.message} required>
               <Input autoFocus placeholder="e.g. Apollo Care Pharmacy" {...form.register('organizationName')} />
@@ -68,6 +79,9 @@ export default function RegisterPage() {
             <Button type="submit" className="w-full" size="lg" loading={register.isPending}>
               Create organization
             </Button>
+            <p className="text-center text-[12px] text-fg-subtle">
+              By creating an organization you agree to the <Link href="/terms" className="underline hover:text-fg">terms of service</Link> and <Link href="/privacy" className="underline hover:text-fg">privacy policy</Link>.
+            </p>
           </form>
           <p className="mt-5 text-center text-[13px] text-fg-subtle">
             Already have an account?{' '}

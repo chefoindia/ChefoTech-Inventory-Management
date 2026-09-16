@@ -20,6 +20,7 @@ async function registerAndLogin(page: Page, api: APIRequestContext) {
 }
 
 const PAGES = ['/dashboard', '/sales/pos', '/products', '/inventory', '/customers', '/purchases/new', '/settings/organization', '/settings/notifications', '/settings/ai'];
+const PUBLIC = ['/', '/features', '/pricing', '/faq', '/contact', '/demo', '/ai-pharmacy-assistant', '/pharmacy-billing-software', '/about', '/privacy'];
 
 test.describe('accessibility (axe-core, WCAG 2.1 AA)', () => {
   test('key screens have no serious or critical violations', async ({ page }) => {
@@ -27,6 +28,22 @@ test.describe('accessibility (axe-core, WCAG 2.1 AA)', () => {
     await registerAndLogin(page, api);
     const failures: string[] = [];
     for (const path of PAGES) {
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      for (const v of results.violations) {
+        const line = `${path}: [${v.impact}] ${v.id} — ${v.help} (${v.nodes.length} node${v.nodes.length === 1 ? '' : 's'}; e.g. ${v.nodes[0]?.target.join(' ')})`;
+        // eslint-disable-next-line no-console
+        console.log(line);
+        if (v.impact === 'serious' || v.impact === 'critical') failures.push(line);
+      }
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  test('public website pages have no serious or critical violations', async ({ page }) => {
+    const failures: string[] = [];
+    for (const path of PUBLIC) {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

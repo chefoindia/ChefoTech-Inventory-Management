@@ -4,14 +4,36 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@pharmaos/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@pharmaos/web",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "api",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@pharmaos/api", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@pharmaos/api",
+        "dev"
+      ],
       "port": 4000
+    },
+    {
+      "name": "web-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@pharmaos/web",
+        "exec",
+        "next",
+        "start",
+        "-p",
+        "3010"
+      ],
+      "port": 3010
     }
   ]
 }

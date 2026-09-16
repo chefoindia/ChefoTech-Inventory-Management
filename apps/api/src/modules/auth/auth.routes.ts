@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { registerSchema, loginSchema, switchOrganizationSchema, changePasswordSchema, idParamSchema } from '@pharmaos/shared';
 import { validate } from '@/middleware/validate';
 import { authenticate } from '@/middleware/authenticate';
-import { authRateLimit } from '@/middleware/rate-limit';
+import { authRateLimit, refreshRateLimit } from '@/middleware/rate-limit';
 import * as c from './auth.controller';
 
 export const authRouter = Router();
 
 authRouter.post('/register', authRateLimit, validate({ body: registerSchema }), c.register);
 authRouter.post('/login', authRateLimit, validate({ body: loginSchema }), c.login);
-authRouter.post('/refresh', authRateLimit, c.refresh);
+authRouter.post('/refresh', refreshRateLimit, c.refresh);
 authRouter.post('/logout', optionalAuth, c.logout);
 
 authRouter.get('/me', authenticate, c.me);

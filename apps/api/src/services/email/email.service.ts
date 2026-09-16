@@ -81,6 +81,12 @@ function createProvider(): EmailProvider {
 
 export const emailProvider: EmailProvider = createProvider();
 
+const BRAND_FOOTER_HTML = '<p style="margin-top:24px;font-family:sans-serif;font-size:12px;color:#94a3b8">Sent by PharmaOS, a ChefoTech product.</p>';
+const BRAND_FOOTER_TEXT = '\n\n--\nSent by PharmaOS, a ChefoTech product.';
+
+/** Sends through the configured provider, appending the product/company footer once. */
 export async function sendEmail(message: EmailMessage): Promise<EmailSendResult> {
-  return emailProvider.send(message);
+  const html = message.html.includes('a ChefoTech product') ? message.html : `${message.html}${BRAND_FOOTER_HTML}`;
+  const text = message.text === undefined || message.text.includes('a ChefoTech product') ? message.text : `${message.text}${BRAND_FOOTER_TEXT}`;
+  return emailProvider.send({ ...message, html, text });
 }

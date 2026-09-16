@@ -108,7 +108,7 @@ export async function renderPdf(layout: TemplateLayout, data: DocumentData): Pro
   const contentBottom = Math.max(...layout.elements.map((e) => e.y + e.height), 0);
   const pageH = dims.continuous ? Math.max(120, layout.margins.top + layout.margins.bottom + contentBottom + totalGrowth + 8) : baseH;
 
-  const doc = new PDFDocument({ size: [pageW, pageH], margin: 0, autoFirstPage: true, bufferPages: true, info: { Title: data.refNumber, Author: data.organization.name, Creator: 'PharmaOS' } });
+  const doc = new PDFDocument({ size: [pageW, pageH], margin: 0, autoFirstPage: true, bufferPages: true, info: { Title: data.refNumber, Author: data.organization.name, Creator: 'PharmaOS by ChefoTech' } });
   const chunks: Buffer[] = [];
   doc.on('data', (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));

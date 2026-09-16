@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@pharmaos/shared';
 import { useLogin } from '@/features/auth/api';
 import { ApiError, errorMessage } from '@/lib/api-client';
+import { track } from '@/lib/analytics';
 import { GuestOnly } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
@@ -23,7 +24,10 @@ function LoginForm() {
 
   const onSubmit = form.handleSubmit((values) => {
     login.mutate(values, {
-      onSuccess: () => router.replace(params.get('next') || '/dashboard'),
+      onSuccess: () => {
+        track('login_completed');
+        router.replace(params.get('next') || '/dashboard');
+      },
       onError: (err) => {
         if (err instanceof ApiError) {
           for (const [field, message] of Object.entries(err.fieldErrors())) {
