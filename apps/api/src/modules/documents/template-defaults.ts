@@ -83,7 +83,7 @@ function totalsBlock(y: number, includeTax = true): TemplateElement[] {
     cy += 13;
   }
   out.push({ id: 'totRule', type: 'line', x, y: cy + 2, width: 200, height: 1, orientation: 'horizontal', style: { borderColor: '#0f172a', borderWidth: 1 } });
-  out.push(t('grandLabel', x, cy + 6, 110, 16, 'Grand total', { fontSize: 11, bold: true }));
+  out.push(t('grandLabel', x, cy + 6, 110, 16, 'Grand total (Rs.)', { fontSize: 11, bold: true }));
   out.push(t('grandValue', x + 110, cy + 6, 90, 16, '{{totals.grandTotal}}', { fontSize: 11, bold: true, align: 'right' }));
   out.push(t('words', 0, y, 300, 30, 'Amount in words: {{totals.grandTotalWords}}', { fontSize: 8, italic: true, color: '#475569' }));
   return out;

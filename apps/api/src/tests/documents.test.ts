@@ -4,6 +4,8 @@ import { app, BASE, registerTenant, auth, addMember, type TestTenant } from './h
 import { createTabletProduct, unitIds } from './catalog.test';
 import { postOpening } from './inventory.test';
 import { amountInWords } from '@/modules/documents/data-providers';
+import { pdfSafeText } from '@/modules/documents/pdf-renderer';
+import { formatMoney, formatMoneyPlain } from '@pharmaos/shared';
 
 const key = () => `k-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 const inDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
@@ -43,6 +45,9 @@ describe('documents & templates', () => {
     expect(pdf.headers['content-type']).toBe('application/pdf');
     expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
     expect((pdf.body as Buffer).length).toBeGreaterThan(2000);
+    // The PDF core fonts have no rupee glyph: it printed as a stray mark in front of every figure.
+    expect((pdf.body as Buffer).includes(Buffer.from('₹', 'utf8'))).toBe(false);
+    expect((pdf.body as Buffer).toString('latin1')).not.toContain('₹');
 
     const receipt = await request(app).get(`${BASE}/documents/saleReceipt/${sale.id}?download=true`).set(hdr(t)).buffer(true).parse(pdfParser);
     expect(receipt.status).toBe(200);
@@ -130,5 +135,22 @@ describe('documents & templates', () => {
       expect(res.status, tmpl.documentType).toBe(200);
       expect((res.body as Buffer).length, tmpl.documentType).toBeGreaterThan(800);
     }
+  });
+});
+
+describe('printed amounts', () => {
+  it('formats money without a currency symbol, because the PDF fonts cannot draw one', () => {
+    expect(formatMoneyPlain(123_456_789)).toBe('12,34,567.89');
+    expect(formatMoneyPlain(0)).toBe('0.00');
+    expect(formatMoneyPlain(-45_000)).toBe('-450.00');
+    expect(formatMoneyPlain(50)).not.toContain('₹');
+    // formatMoney still carries the symbol for screens and emails, which render it fine.
+    expect(formatMoney(50)).toContain('₹');
+  });
+
+  it('replaces characters the core fonts lack in any text that reaches a page', () => {
+    expect(pdfSafeText('Paid ₹1,200 in full')).toBe('Paid Rs.1,200 in full');
+    expect(pdfSafeText('‘quoted’ and “double”')).toBe(`'quoted' and "double"`);
+    expect(pdfSafeText('Plain ASCII stays')).toBe('Plain ASCII stays');
   });
 });

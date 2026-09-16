@@ -2,7 +2,7 @@ import { Types, type Model } from 'mongoose';
 
 type PartyLike = { _id: Types.ObjectId; name: string; phone?: string; email?: string; address?: { line1?: string; line2?: string; city?: string; state?: string; pincode?: string } | null; gstin?: string; stateCode?: string; balanceMinor?: number };
 import type { BindingGroup, DocumentTemplateType } from '@pharmaos/shared';
-import { formatMoney } from '@pharmaos/shared';
+import { formatMoneyPlain } from '@pharmaos/shared';
 import { OrganizationModel, type OrganizationDoc } from '@/models/organization.model';
 import { OutletModel, type OutletDoc } from '@/models/outlet.model';
 import { SaleModel, type SaleDoc } from '@/models/sale.model';
@@ -45,7 +45,7 @@ export interface DocumentData {
   emailTo?: string;
 }
 
-const money = (minor: number | undefined | null) => formatMoney(minor ?? 0);
+const money = (minor: number | undefined | null) => formatMoneyPlain(minor ?? 0);
 const date = (d?: Date | string | null) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
 const dateTime = (d?: Date | string | null) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
 const expiry = (d?: Date | string | null) => (d ? new Date(d).toLocaleDateString('en-IN', { month: '2-digit', year: '2-digit' }) : '');

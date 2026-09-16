@@ -64,6 +64,18 @@ export function formatMoney(
   }).format(toMajor(minor, minorDigits));
 }
 
+/**
+ * Grouped amount with no currency symbol, e.g. 12,34,567.89.
+ *
+ * Printed documents use this rather than `formatMoney`: the rupee sign (U+20B9) has no glyph in
+ * the PDF core fonts, so it comes out as a stray mark in front of every figure. Documents state the
+ * currency once, in the column heading and in the amount in words.
+ */
+export function formatMoneyPlain(minor: number, opts: { locale?: string; minorDigits?: number } = {}): string {
+  const { locale = 'en-IN', minorDigits = 2 } = opts;
+  return new Intl.NumberFormat(locale, { minimumFractionDigits: minorDigits, maximumFractionDigits: minorDigits }).format(toMajor(minor, minorDigits));
+}
+
 /** Round a total to the nearest major unit; returns the round-off delta in minor units. */
 export function roundOffToMajor(minor: number, minorDigits = 2): { rounded: number; delta: number } {
   const unit = 10 ** minorDigits;

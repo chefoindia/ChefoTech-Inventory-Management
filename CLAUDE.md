@@ -20,6 +20,7 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 5. Permissions live in `packages/shared/src/permissions.ts`; guard routes with `requirePermission`. Non-owners can only grant permissions they hold.
 6. Money/stock documents: create inside `withTransaction`, reserve numbers with `nextDocumentNumber` in the same transaction, guard the endpoint with `idempotent({ required: true })`, and write `audit()` in the same session.
 7. Historical documents snapshot prices/names/units; never recompute old invoices from current product data.
+   PDFs use the core WinAnsi fonts, which have no rupee glyph: printed amounts go through `formatMoneyPlain` (no symbol) and every string through `pdfSafeText`. Use `formatMoney` (with ₹) only for screens, emails and notifications.
 8. No fake UI: every sidebar module is backed by real API data. Do not add placeholder pages with dummy numbers; unfinished work is tracked in `docs/PHASES.md`.
 9. Every list view has loading, empty and error states; every form maps server field errors via `applyServerErrors`.
 

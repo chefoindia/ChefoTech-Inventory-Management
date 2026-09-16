@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit';
 import bwipjs from 'bwip-js';
 import QRCode from 'qrcode';
-import { PAGE_DIMENSIONS, formatMoney, type TemplateLayout, type TemplateElement, type ElementStyle } from '@pharmaos/shared';
+import { PAGE_DIMENSIONS, formatMoneyPlain, type TemplateLayout, type TemplateElement, type ElementStyle } from '@pharmaos/shared';
 import type { DocumentData } from './data-providers';
 import { logger } from '@/lib/logger';
 
@@ -40,10 +40,24 @@ function fontName(style: ElementStyle): string {
   return style.bold && style.italic ? 'Courier-BoldOblique' : style.bold ? 'Courier-Bold' : style.italic ? 'Courier-Oblique' : 'Courier';
 }
 
+/**
+ * The PDF core fonts are WinAnsi-encoded and have no glyph for the rupee sign or a few other
+ * characters people paste into notes, so they print as a stray mark in front of the figure.
+ * Swapping them for plain equivalents keeps printed documents readable whatever is typed upstream.
+ */
+export function pdfSafeText(text: string): string {
+  return text
+    .replace(/[₹₨]/g, 'Rs.')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/€/g, 'EUR')
+    .replace(/™/g, 'TM');
+}
+
 function formatCell(value: unknown, format: string, index: number): string {
   if (format === 'index') return String(index + 1);
   if (value === undefined || value === null) return '';
-  if (format === 'money') return typeof value === 'number' ? formatMoney(value) : String(value);
+  if (format === 'money') return typeof value === 'number' ? formatMoneyPlain(value) : String(value);
   if (format === 'percent') return typeof value === 'number' ? `${value}%` : String(value);
   if (format === 'qty') return typeof value === 'number' ? (Number.isInteger(value) ? String(value) : value.toFixed(2)) : String(value);
   return String(value);
@@ -127,8 +141,9 @@ export async function renderPdf(layout: TemplateLayout, data: DocumentData): Pro
     if (style.borderWidth) doc.save().lineWidth(style.borderWidth).strokeColor(style.borderColor ?? '#000000').rect(ox + x, oy + y, w, h).stroke().restore();
   };
 
-  const drawText = (text: string, x: number, y: number, w: number, h: number, style: ElementStyle) => {
-    if (!text) return;
+  const drawText = (raw: string, x: number, y: number, w: number, h: number, style: ElementStyle) => {
+    if (!raw) return;
+    const text = pdfSafeText(raw);
     applyStyle(style);
     const pad = style.padding ?? 0;
     doc.text(text, ox + x + pad, oy + y + pad, { width: Math.max(1, w - pad * 2), height: Math.max(1, h - pad * 2), align: style.align ?? 'left', lineGap: style.lineHeight ? (style.lineHeight - 1) * (style.fontSize ?? 9) : 0, ellipsis: true });
