@@ -149,6 +149,51 @@ describe('AI: model availability', () => {
     expect(pickClosestModel('gemini-9.9-pro', modern)).toBe('gemini-pro-latest');
   });
 
+  it('echoes the thought signature back so tool calling works on Gemini 3 models', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/models?')) return new Response(JSON.stringify({ models: [{ name: 'models/gemini-3.6-flash', supportedGenerationMethods: ['generateContent'] }] }), { status: 200 });
+      const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+      bodies.push(body);
+      // First turn: ask for a tool, with the opaque signature Gemini 3 attaches to the call.
+      if (bodies.length === 1) {
+        return new Response(JSON.stringify({
+          candidates: [{ content: { parts: [{ functionCall: { name: 'listReports', args: {} }, thoughtSignature: 'SIG-abc123' }] }, finishReason: 'STOP' }],
+          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 4 },
+        }), { status: 200 });
+      }
+      // Second turn: Google rejects the history if the signature did not come back.
+      const contents = body.contents as { role: string; parts: Record<string, unknown>[] }[];
+      const modelTurn = contents.find((c) => c.role === 'model');
+      const call = modelTurn?.parts.find((p) => 'functionCall' in p);
+      if (!call || call.thoughtSignature !== 'SIG-abc123') {
+        return new Response(JSON.stringify({ error: { code: 400, message: 'Function call is missing a thought_signature in functionCall parts.' } }), { status: 400 });
+      }
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: 'Two customers owe money.' }] }, finishReason: 'STOP' }],
+        usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 6 },
+      }), { status: 200 });
+    });
+
+    const provider = new GeminiProvider('AIzaSyEXAMPLEKEY1234567890ABCD');
+    const first = await provider.generate({ model: 'gemini-3.6-flash', system: 'test', messages: [{ role: 'user', parts: [{ text: 'Which customers have pending payments?' }] }], tools: [{ name: 'listReports', description: 'reports', parameters: { type: 'object', properties: {} } }] });
+    expect(first.functionCalls[0]!.thoughtSignature).toBe('SIG-abc123');
+
+    // Replaying the call the way the chat loop does must not lose the signature.
+    const second = await provider.generate({
+      model: 'gemini-3.6-flash',
+      system: 'test',
+      messages: [
+        { role: 'user', parts: [{ text: 'Which customers have pending payments?' }] },
+        { role: 'model', parts: first.functionCalls.map((c) => ({ functionCall: c })) },
+        { role: 'user', parts: [{ functionResponse: { name: 'listReports', response: { result: [] } } }] },
+      ],
+      tools: [{ name: 'listReports', description: 'reports', parameters: { type: 'object', properties: {} } }],
+    });
+    expect(second.text).toBe('Two customers owe money.');
+  });
+
   it('moves off a model Google has retired, using the replacement Google names', async () => {
     const urls: string[] = [];
     const ok = { candidates: [{ content: { parts: [{ text: 'OK' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2 } };

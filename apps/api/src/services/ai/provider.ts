@@ -16,7 +16,18 @@ export interface AiInlineFile {
   data: string;
 }
 
-export type AiPart = { text: string } | { file: AiInlineFile } | { functionCall: { name: string; args: Record<string, unknown> } } | { functionResponse: { name: string; response: Record<string, unknown> } };
+/**
+ * A call the model asked for. `thoughtSignature` is an opaque token some models (Gemini 3 and
+ * later) attach to the call: it must be sent back untouched with the same part on the next turn,
+ * or the API refuses the request. Treat it as a cookie for the model's own reasoning.
+ */
+export interface AiFunctionCall {
+  name: string;
+  args: Record<string, unknown>;
+  thoughtSignature?: string;
+}
+
+export type AiPart = { text: string } | { file: AiInlineFile } | { functionCall: AiFunctionCall } | { functionResponse: { name: string; response: Record<string, unknown> } };
 
 export interface AiMessage {
   role: 'user' | 'model';
@@ -37,7 +48,7 @@ export interface AiGenerateRequest {
 
 export interface AiGenerateResult {
   text: string;
-  functionCalls: { name: string; args: Record<string, unknown> }[];
+  functionCalls: AiFunctionCall[];
   usage: { inputTokens: number; outputTokens: number };
   finishReason: string;
   /** The model that actually answered; differs from the request when the configured one was unavailable. */

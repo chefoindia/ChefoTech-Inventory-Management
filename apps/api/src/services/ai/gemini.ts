@@ -49,6 +49,8 @@ interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
   functionCall?: { name: string; args?: Record<string, unknown> };
+  /** Opaque reasoning token that must be echoed back with the part it came on. */
+  thoughtSignature?: string;
   functionResponse?: { name: string; response: Record<string, unknown> };
 }
 
@@ -58,7 +60,10 @@ function toGeminiContents(messages: AiMessage[]) {
     parts: m.parts.map((p): GeminiPart => {
       if ('text' in p) return { text: p.text };
       if ('file' in p) return { inlineData: { mimeType: p.file.mimeType, data: p.file.data } };
-      if ('functionCall' in p) return { functionCall: p.functionCall };
+      if ('functionCall' in p) {
+        const { thoughtSignature, ...call } = p.functionCall;
+        return thoughtSignature ? { functionCall: call, thoughtSignature } : { functionCall: call };
+      }
       return { functionResponse: p.functionResponse };
     }),
   }));
@@ -197,7 +202,15 @@ export class GeminiProvider implements AiProvider {
     const parts = cand?.content?.parts ?? [];
     return {
       text: parts.map((p) => p.text ?? '').join('').trim(),
-      functionCalls: parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall!.name, args: p.functionCall!.args ?? {} })),
+      functionCalls: parts
+        .filter((p) => p.functionCall)
+        .map((p, i) => ({
+          name: p.functionCall!.name,
+          args: p.functionCall!.args ?? {},
+          // Newer models put the signature on the call itself; when it rides on a preceding
+          // thought/text part instead, the first call carries it back.
+          thoughtSignature: p.thoughtSignature ?? (i === 0 ? parts.find((x) => x.thoughtSignature)?.thoughtSignature : undefined),
+        })),
       usage: { inputTokens: body.usageMetadata?.promptTokenCount ?? 0, outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0 },
       finishReason: cand?.finishReason ?? 'STOP',
       modelUsed: model,

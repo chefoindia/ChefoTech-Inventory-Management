@@ -34,6 +34,7 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 - Adding an AI capability = adding a tool in `modules/ai/tools.ts` with a `permission` (and optional `feature`) that calls an existing service. Tools must not touch models directly and must return proposals (`actions`) for anything that changes money, stock or sends messages.
 - Frontend: `features/ai/api.ts`, `stores/assistant.ts`, `components/ai/assistant.tsx` (`AiAssistant` mounted in the app shell, `AskAi`, `AiDashboardCard`). `PageHeader` shows a "What is this?" button automatically; pass `help="…"` for a better question or `help={false}` to hide it.
 - Model ids are a preference, not a constant: Google renames and retires them, and a model can still appear in ListModels while being closed to new users (`404 … no longer available to new users … use models/X`). On a 404 the provider takes Google's named replacement, else `pickClosestModel()` over the key's catalogue, retries, and the chat service persists the substitute. Defaults are the maintained `*-latest` aliases, which are never retired. Never hard-code a dated model id.
+- Gemini 3 and later attach an opaque `thoughtSignature` to each function call. It must be echoed back on the same part in the next turn or the API returns 400 ("missing a thought_signature"). `AiFunctionCall` carries it and `toGeminiContents` re-attaches it; never strip it when rebuilding history.
 - Tests stub `GeminiProvider.prototype.generate/test` with `vi.spyOn`; no test calls Google.
 
 ## Starter catalogue (common medicines)
