@@ -58,10 +58,10 @@ export default function NewTransferPage() {
         <CardHeader><CardTitle>Destination</CardTitle><CardDescription>Only batches with sellable stock at this outlet can be transferred.</CardDescription></CardHeader>
         <CardContent>
           <FormGrid className="sm:grid-cols-3">
-            <FormField label="To outlet" htmlFor="to" required>
+            <FormField info="The branch receiving this stock. It leaves your current outlet when you dispatch and arrives there when they receive it." label="To outlet" htmlFor="to" required>
               <Select value={toOutletId} onChange={(e) => setToOutletId(e.target.value)}><option value="">Select outlet…</option>{destinations.map((o) => <option key={o.id} value={o.id}>{o.name} ({o.code})</option>)}</Select>
             </FormField>
-            <FormField label="Notes" htmlFor="notes" className="sm:col-span-2"><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Courier, vehicle, reason…" /></FormField>
+            <FormField info="Anything the receiving outlet should know, for example who is carrying the stock." label="Notes" htmlFor="notes" className="sm:col-span-2"><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Courier, vehicle, reason…" /></FormField>
           </FormGrid>
           {destinations.length === 0 && outlets.data ? <p className="mt-2 text-[13px] text-warning-700">No other active outlet. Add one under Settings → Outlets (plan permitting).</p> : null}
         </CardContent>

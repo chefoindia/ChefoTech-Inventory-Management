@@ -8,7 +8,7 @@ async function registerAndLogin(page: Page, api: APIRequestContext) {
   const res = await api.post(`${API}/auth/register`, { data: { organizationName: 'Shell Pharmacy', ownerName: 'E2E Owner', email, password, stateCode: '27' } });
   expect(res.status(), await res.text()).toBe(201);
   await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
+  await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByLabel(/^Password/).fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);
@@ -50,16 +50,21 @@ test.describe('application shell and sign-in', () => {
   });
 
   test('a back arrow is available on every screen except the dashboard', async ({ page }) => {
+    test.setTimeout(180_000); // visits seven routes; a cold dev server compiles each on first hit
     const api = await pwRequest.newContext();
     await registerAndLogin(page, api);
     const back = page.getByRole('button', { name: 'Go back' });
     await expect(back, 'the dashboard is the home screen, nothing to go back to').toHaveCount(0);
     for (const path of ['/customers', '/products', '/settings/organization', '/reports', '/inventory']) {
       await page.goto(path);
+      // Let the silent token refresh settle, the way a person reading the page would.
+      await page.waitForLoadState('networkidle');
       await expect(back, `${path} should offer a back arrow`).toBeVisible();
     }
     await page.goto('/customers');
+    await page.waitForLoadState('networkidle');
     await page.goto('/settings/users');
+    await page.waitForLoadState('networkidle');
     await back.click();
     await expect(page).toHaveURL(/\/customers/);
   });

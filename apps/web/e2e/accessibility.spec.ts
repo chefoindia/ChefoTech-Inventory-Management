@@ -13,7 +13,7 @@ async function registerAndLogin(page: Page, api: APIRequestContext) {
   const res = await api.post(`${API}/auth/register`, { data: { organizationName: 'A11y Pharmacy', ownerName: 'A11y Owner', email, password, stateCode: '27' } });
   expect(res.status()).toBe(201);
   await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
+  await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByLabel(/^Password/).fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);

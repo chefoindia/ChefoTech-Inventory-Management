@@ -16,6 +16,7 @@ import { newIdempotencyKey } from '@/lib/uuid';
 import { money, dateInput } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ColumnHint } from '@/components/ui/info-hint';
 import { FormField, FormGrid } from '@/components/ui/form-field';
 import { Input, Select, Textarea, Checkbox } from '@/components/ui/input';
 import { MoneyInput, PercentInput } from '@/components/ui/money-input';
@@ -210,10 +211,10 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
         <CardHeader><CardTitle>Supplier invoice</CardTitle><CardDescription>Enter the supplier&apos;s bill as printed. GST is computed per line from the taxable value.</CardDescription></CardHeader>
         <CardContent>
           <FormGrid className="sm:grid-cols-4">
-            <FormField label="Supplier" htmlFor="supplier" required error={errors.supplierId} className="sm:col-span-2"><SupplierPicker value={supplierId} onChange={(id, s) => { setSupplierId(id); setSupplier(s ?? null); }} disabled={!!purchase} /></FormField>
-            <FormField label="Invoice no." htmlFor="inv" required error={errors.supplierInvoiceNumber}><Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} /></FormField>
-            <FormField label="Invoice date" htmlFor="inv-date" required error={errors.invoiceDate}><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></FormField>
-            <FormField label="Due date" htmlFor="due" hint={supplier?.paymentTermsDays ? `${supplier.paymentTermsDays}-day terms` : undefined}><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></FormField>
+            <FormField info="Who sent this invoice. Their payment terms fill the due date, and the bill posts to their account so you always know what you owe them." label="Supplier" htmlFor="supplier" required error={errors.supplierId} className="sm:col-span-2"><SupplierPicker value={supplierId} onChange={(id, s) => { setSupplierId(id); setSupplier(s ?? null); }} disabled={!!purchase} /></FormField>
+            <FormField info="The bill number exactly as printed on the supplier invoice. Enter it as it appears, so your books match theirs when you reconcile." label="Invoice no." htmlFor="inv" required error={errors.supplierInvoiceNumber}><Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} /></FormField>
+            <FormField info="The date on the supplier invoice, not today. Due dates and purchase reports are worked out from this." label="Invoice date" htmlFor="inv-date" required error={errors.invoiceDate}><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></FormField>
+            <FormField info="When you have to pay. Filled in from the supplier payment terms, and you can change it. It drives the overdue payables list." label="Due date" htmlFor="due" hint={supplier?.paymentTermsDays ? `${supplier.paymentTermsDays}-day terms` : undefined}><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></FormField>
             {supplier ? <div className="sm:col-span-3 flex items-end pb-2 text-[12px] text-fg-subtle">{supplier.gstin ? `GSTIN ${supplier.gstin} · ` : ''}{isInterState(taxCtx) ? 'Inter-state purchase (IGST)' : 'Intra-state purchase (CGST + SGST)'}{supplier.balanceMinor ? ` · payable ${money(supplier.balanceMinor)}` : ''}</div> : null}
           </FormGrid>
         </CardContent>
@@ -224,7 +225,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-[13px]">
             <thead className="bg-surface-muted text-left text-[11px] font-medium uppercase tracking-wide text-fg-subtle">
-              <tr><th className="px-3 py-2 w-[260px]">Product</th><th className="px-2 py-2">Unit</th><th className="px-2 py-2 text-right">Qty</th><th className="px-2 py-2 text-right">Free</th><th className="px-2 py-2">Batch</th><th className="px-2 py-2">Expiry</th><th className="px-2 py-2 text-right">Rate</th><th className="px-2 py-2 text-right">MRP</th><th className="px-2 py-2 text-right">Selling</th><th className="px-2 py-2 text-right">Disc %</th><th className="px-2 py-2">GST</th><th className="px-2 py-2 text-right">Amount</th><th className="w-8" /></tr>
+              <tr><th className="px-3 py-2 w-[260px]"><ColumnHint title="Product">The product from your catalogue. If it is not there yet, add it first; the purchase then fills its stock.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Unit">The unit the supplier billed you in, usually strips or boxes rather than single tablets. Stock is converted to base units for you.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Qty">How many of that unit you were charged for. Free goods go in the next column, not here.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Free">Extra units the distributor gave free as a scheme. They add to stock without adding to cost, which lowers your real purchase rate.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Batch">The batch number on the pack. Stock, expiry and MRP are tracked per batch, so this must match the pack in your hand.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Expiry">The expiry printed on this batch. It drives your near-expiry alerts and blocks the sale once it passes.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Rate">What you pay for one unit before GST, as printed on the supplier invoice. This is your cost, not the customer price.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="MRP">The maximum retail price printed on this batch. The counter uses it as the ceiling when billing this stock.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Selling">What you will charge for this batch, if it is not the MRP. Leave it as the MRP if you sell at printed price.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Disc %">The trade discount the supplier gave on this line, as shown on their invoice. It reduces your cost, not the customer price.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="GST">The GST rate on this line. It comes from the product and can be changed if the supplier invoice shows a different rate.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Amount">Line total after discount and GST. Compare it with the supplier invoice before you save.</ColumnHint></th><th className="w-8" /></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {lines.map((l, i) => {
@@ -266,10 +267,10 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
           <CardHeader><CardTitle>Charges, payment & files</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <FormGrid className="sm:grid-cols-4">
-              <FormField label="Bill discount %" htmlFor="bd-pct"><PercentInput value={billDiscountBps} onChange={(v) => setBillDiscountBps(v ?? 0)} /></FormField>
-              <FormField label="Bill discount ₹" htmlFor="bd-amt"><MoneyInput value={billDiscountMinor} onChange={(v) => setBillDiscountMinor(v ?? 0)} /></FormField>
-              <FormField label="Other charges" htmlFor="oc"><MoneyInput value={otherChargesMinor} onChange={(v) => setOtherChargesMinor(v ?? 0)} /></FormField>
-              <FormField label="Charges note" htmlFor="oc-note"><Input value={otherChargesNote} onChange={(e) => setOtherChargesNote(e.target.value)} placeholder="Freight" /></FormField>
+              <FormField info="A discount the supplier gave on the whole bill, as a percentage. Use this only for a discount that is not already on the lines." label="Bill discount %" htmlFor="bd-pct"><PercentInput value={billDiscountBps} onChange={(v) => setBillDiscountBps(v ?? 0)} /></FormField>
+              <FormField info="A flat discount on the whole bill in rupees, when the supplier shows a lump sum rather than a percentage." label="Bill discount ₹" htmlFor="bd-amt"><MoneyInput value={billDiscountMinor} onChange={(v) => setBillDiscountMinor(v ?? 0)} /></FormField>
+              <FormField info="Freight, packing or delivery charges added at the bottom of the supplier invoice." label="Other charges" htmlFor="oc"><MoneyInput value={otherChargesMinor} onChange={(v) => setOtherChargesMinor(v ?? 0)} /></FormField>
+              <FormField info="What the other charges were for, for example freight. It is kept with the purchase for your records." label="Charges note" htmlFor="oc-note"><Input value={otherChargesNote} onChange={(e) => setOtherChargesNote(e.target.value)} placeholder="Freight" /></FormField>
             </FormGrid>
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <label className="flex items-center gap-2"><Checkbox checked={roundOff} onChange={(e) => setRoundOff(e.target.checked)} /> Round off to the rupee</label>
@@ -287,7 +288,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
               {ai.available && !attachments.length && !purchase ? <p className="mt-1 text-[12px] text-fg-subtle">Upload a photo or PDF of the supplier bill and the AI can fill the lines for you to check.</p> : null}
               <AiInvoiceReview result={aiResult} open={aiOpen} onOpenChange={setAiOpen} onApply={applyAi} />
             </div>
-            <FormField label="Notes" htmlFor="notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
+            <FormField info="Anything about this purchase your team should remember, such as a short supply or a replacement promised by the distributor." label="Notes" htmlFor="notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
             <CustomFieldsForm entity="purchase" values={customFields} onChange={setCustomFields} />
           </CardContent>
         </Card>

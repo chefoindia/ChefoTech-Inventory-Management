@@ -41,7 +41,7 @@ async function seedProduct(api: APIRequestContext, t: Tenant) {
 
 async function login(page: Page, t: Tenant) {
   await page.goto('/login');
-  await page.getByLabel('Email').fill(t.email);
+  await page.getByRole('textbox', { name: 'Email' }).fill(t.email);
   await page.getByLabel(/^Password/).fill(t.password);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);
@@ -76,10 +76,10 @@ test.describe('critical path in the browser', () => {
     await login(page, t);
 
     await page.goto('/purchases/new');
-    await page.getByRole('button', { name: 'Supplier' }).click();
+    await page.getByRole('button', { name: 'Supplier', exact: true }).click();
     await page.getByPlaceholder('Type to search…').fill('medico');
     await page.getByRole('listbox').getByRole('option').first().click();
-    await page.getByLabel('Invoice no.').fill('MD/2026/0912');
+    await page.getByRole('textbox', { name: 'Invoice no.' }).fill('MD/2026/0912');
 
     // first item row
     await page.getByRole('button', { name: 'Search product by name, generic or barcode…' }).first().click();

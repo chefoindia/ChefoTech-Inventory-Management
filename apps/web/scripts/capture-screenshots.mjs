@@ -124,7 +124,7 @@ async function main() {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   await page.goto(`${WEB}/login`);
-  await page.getByLabel('Email').fill(t.email);
+  await page.getByRole('textbox', { name: 'Email' }).fill(t.email);
   await page.getByLabel(/^Password/).fill(t.password);
   await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForURL(/\/dashboard/);

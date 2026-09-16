@@ -65,10 +65,10 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {inv.requiresPassword ? (
             <>
-              <FormField label="Your name" htmlFor="name" error={form.formState.errors.name?.message}>
+              <FormField info="Your own name, as your colleagues and the audit trail will show it." label="Your name" htmlFor="name" error={form.formState.errors.name?.message}>
                 <Input defaultValue={inv.name} placeholder={inv.name} {...form.register('name')} />
               </FormField>
-              <FormField label="Create a password" htmlFor="password" error={form.formState.errors.password?.message} required hint="At least 10 characters.">
+              <FormField info="At least 10 characters, and only yours. Every action you take is recorded against your account." label="Create a password" htmlFor="password" error={form.formState.errors.password?.message} required hint="At least 10 characters.">
                 <PasswordInput autoComplete="new-password" {...form.register('password', { required: 'Required', minLength: { value: 10, message: 'At least 10 characters' } })} />
               </FormField>
             </>

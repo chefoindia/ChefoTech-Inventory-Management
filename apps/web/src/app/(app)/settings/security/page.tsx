@@ -50,10 +50,10 @@ function ProfileCard() {
         </CardHeader>
         <CardContent>
           <FormGrid>
-            <FormField label="Name" htmlFor="profile-name" error={errors.name?.message} required>
+            <FormField info="Your own name as it appears in the audit trail and to your team." label="Name" htmlFor="profile-name" error={errors.name?.message} required>
               <Input {...form.register('name')} />
             </FormField>
-            <FormField label="Phone" htmlFor="profile-phone" error={errors.phone?.message}>
+            <FormField info="Your contact number, used by your team and for account recovery conversations." label="Phone" htmlFor="profile-phone" error={errors.phone?.message}>
               <Input type="tel" {...form.register('phone')} />
             </FormField>
           </FormGrid>
@@ -96,10 +96,10 @@ function PasswordCard() {
         </CardHeader>
         <CardContent>
           <FormGrid>
-            <FormField label="Current password" htmlFor="currentPassword" error={errors.currentPassword?.message} required>
+            <FormField info="Your existing password, to prove it is really you changing it." label="Current password" htmlFor="currentPassword" error={errors.currentPassword?.message} required>
               <PasswordInput autoComplete="current-password" {...form.register('currentPassword')} />
             </FormField>
-            <FormField label="New password" htmlFor="newPassword" error={errors.newPassword?.message} required hint="At least 10 characters.">
+            <FormField info="At least 10 characters. Use something you do not use anywhere else, because this account can see your whole business." label="New password" htmlFor="newPassword" error={errors.newPassword?.message} required hint="At least 10 characters.">
               <PasswordInput autoComplete="new-password" {...form.register('newPassword')} />
             </FormField>
           </FormGrid>

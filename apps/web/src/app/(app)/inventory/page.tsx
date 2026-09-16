@@ -165,11 +165,11 @@ function EditBatchDialog({ batch, onClose }: { batch: BatchRow | null; onClose: 
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={`Edit batch ${batch?.batchNumber ?? ''}`} description={batch?.productName} size="sm">
         <div className="space-y-4">
-          <FormField label="Expiry date" htmlFor="b-exp" required><Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} /></FormField>
-          <FormField label="Manufacturing date" htmlFor="b-mfg"><Input type="date" value={mfg} onChange={(e) => setMfg(e.target.value)} /></FormField>
+          <FormField info="The expiry printed on the pack. Expired stock is blocked from sale automatically, and near-expiry stock appears in your alerts." label="Expiry date" htmlFor="b-exp" required><Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} /></FormField>
+          <FormField info="The manufacturing date on the pack, if you want to record it. Optional." label="Manufacturing date" htmlFor="b-mfg"><Input type="date" value={mfg} onChange={(e) => setMfg(e.target.value)} /></FormField>
           <FormGrid>
-            <FormField label="MRP" htmlFor="b-mrp"><MoneyInput value={mrp} onChange={setMrp} /></FormField>
-            <FormField label="Selling price" htmlFor="b-sp"><MoneyInput value={sp} onChange={setSp} /></FormField>
+            <FormField info="The MRP printed on this particular batch. Older batches often carry a different MRP, which is why it is kept per batch." label="MRP" htmlFor="b-mrp"><MoneyInput value={mrp} onChange={setMrp} /></FormField>
+            <FormField info="What you charge for this batch if it differs from the MRP. Leave blank to sell at the batch MRP." label="Selling price" htmlFor="b-sp"><MoneyInput value={sp} onChange={setSp} /></FormField>
           </FormGrid>
         </div>
         <DialogFooter>
@@ -193,9 +193,9 @@ function WriteOffDialog({ batch, onClose }: { batch: BatchRow | null; onClose: (
     <Dialog open={!!batch} onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={`Write off ${batch?.batchNumber ?? ''}`} description={`${batch?.productName ?? ''} · ${batch?.qtyBase ?? 0} on hand. Creates an approved adjustment and a stock movement.`} size="sm">
         <div className="space-y-4">
-          <FormField label="Quantity (base units)" htmlFor="wo-qty" required><Input type="number" min={1} max={batch?.qtyBase} value={qty ?? ''} onChange={(e) => setQty(e.target.value === '' ? null : Math.min(Number(e.target.value), batch?.qtyBase ?? 0))} /></FormField>
-          <FormField label="Reason" htmlFor="wo-kind"><Select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="expiry">Expired</option><option value="damage">Damaged</option></Select></FormField>
-          <FormField label="Note" htmlFor="wo-note"><Textarea className="min-h-[38px]" value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
+          <FormField info="How many base units you are entering, for example tablets rather than strips. Check the base unit on the product before typing a number." label="Quantity (base units)" htmlFor="wo-qty" required><Input type="number" min={1} max={batch?.qtyBase} value={qty ?? ''} onChange={(e) => setQty(e.target.value === '' ? null : Math.min(Number(e.target.value), batch?.qtyBase ?? 0))} /></FormField>
+          <FormField info="Why stock is changing. It is recorded in the audit trail, which matters when you reconcile a physical count later." label="Reason" htmlFor="wo-kind"><Select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="expiry">Expired</option><option value="damage">Damaged</option></Select></FormField>
+          <FormField info="Extra detail for this entry, for example which shelf was counted." label="Note" htmlFor="wo-note"><Textarea className="min-h-[38px]" value={note} onChange={(e) => setNote(e.target.value)} /></FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>

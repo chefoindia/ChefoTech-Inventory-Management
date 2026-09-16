@@ -190,12 +190,12 @@ function ReturnDialog({ sale, open, onOpenChange, onDone }: { sale: SaleDto; ope
           </TBody>
         </Table>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <FormField label="Settlement" htmlFor="ret-settle">
+          <FormField info="What the customer gets: money back now, or credit against their account for a future purchase." label="Settlement" htmlFor="ret-settle">
             <Select value={settlement} onChange={(e) => setSettlement(e.target.value as typeof settlement)}><option value="refund">Refund now</option><option value="credit_note">Credit note (reduce balance)</option></Select>
           </FormField>
-          {settlement === 'refund' ? <FormField label="Refund method" htmlFor="ret-method"><Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>{TENDER_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select></FormField> : null}
+          {settlement === 'refund' ? <FormField info="How the money goes back: cash, UPI, card or bank transfer. Recorded in your payment mix." label="Refund method" htmlFor="ret-method"><Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>{TENDER_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select></FormField> : null}
           <FormField label="Estimated value" htmlFor="ret-est"><MoneyInput value={estimate} onChange={() => undefined} disabled /></FormField>
-          <FormField label="Notes" htmlFor="ret-notes" className="sm:col-span-3"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
+          <FormField info="Why the item came back, for example wrong strength or a reaction. Kept with the return for your record." label="Notes" htmlFor="ret-notes" className="sm:col-span-3"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={create.isPending}>Cancel</Button>

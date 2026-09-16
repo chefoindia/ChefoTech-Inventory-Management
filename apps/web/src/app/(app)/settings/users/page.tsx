@@ -94,14 +94,14 @@ function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
       <DialogContent title="Invite a team member" description="They receive an email link valid for 7 days.">
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <FormGrid>
-            <FormField label="Name" htmlFor="name" error={errors.name?.message} required>
+            <FormField info="The staff member name as it should appear in the audit trail and on the bills they create." label="Name" htmlFor="name" error={errors.name?.message} required>
               <Input autoFocus {...form.register('name')} />
             </FormField>
-            <FormField label="Email" htmlFor="email" error={errors.email?.message} required>
+            <FormField info="Where their invitation is sent and the address they sign in with. It must be their own, because every action is recorded against it." label="Email" htmlFor="email" error={errors.email?.message} required>
               <Input type="email" {...form.register('email')} />
             </FormField>
           </FormGrid>
-          <FormField label="Role" htmlFor="roleId" error={errors.roleId?.message} required>
+          <FormField info="What they are allowed to do. A cashier can bill, a pharmacist can dispense schedule medicines, a manager can see cost and profit." label="Role" htmlFor="roleId" error={errors.roleId?.message} required>
             <Select {...form.register('roleId')}>
               <option value="">Select a role</option>
               {roles.data?.filter((r) => r.key !== 'owner').map((r) => (
@@ -161,7 +161,7 @@ function EditMemberDialog({ member, onOpenChange }: { member: MembershipDto | nu
       <DialogContent title={member ? `Edit ${member.user.name}` : 'Edit member'} description={member?.user.email}>
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <FormGrid>
-            <FormField label="Role" htmlFor="roleId" error={errors.roleId?.message}>
+            <FormField info="What they are allowed to do. A cashier can bill, a pharmacist can dispense schedule medicines, a manager can see cost and profit." label="Role" htmlFor="roleId" error={errors.roleId?.message}>
               <Select {...form.register('roleId')}>
                 {roles.data?.filter((r) => r.key !== 'owner').map((r) => (
                   <option key={r.id} value={r.id}>
@@ -170,7 +170,7 @@ function EditMemberDialog({ member, onOpenChange }: { member: MembershipDto | nu
                 ))}
               </Select>
             </FormField>
-            <FormField label="Status" htmlFor="status" error={errors.status?.message} hint="Suspending signs the member out immediately.">
+            <FormField info="Whether this member can still sign in. Suspend instead of deleting, so their past sales stay attributable." label="Status" htmlFor="status" error={errors.status?.message} hint="Suspending signs the member out immediately.">
               <Select {...form.register('status')}>
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>

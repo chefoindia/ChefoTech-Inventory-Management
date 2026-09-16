@@ -123,19 +123,19 @@ export default function OrganizationSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <FormGrid>
-                    <FormField label="Display name" htmlFor="name" error={errors.name?.message} required>
+                    <FormField info="The name shown inside the app and on your bills. Usually your shop name as customers know it." label="Display name" htmlFor="name" error={errors.name?.message} required>
                       <Input {...form.register('name')} />
                     </FormField>
-                    <FormField label="Legal name" htmlFor="legalName" error={errors.legalName?.message}>
+                    <FormField info="The registered name of the business, if it differs from the shop name. It prints on tax invoices." label="Legal name" htmlFor="legalName" error={errors.legalName?.message}>
                       <Input {...form.register('legalName')} />
                     </FormField>
-                    <FormField label="Email" htmlFor="email" error={errors.email?.message}>
+                    <FormField info="The business email printed on bills and used as the reply address when you email a customer their invoice." label="Email" htmlFor="email" error={errors.email?.message}>
                       <Input type="email" {...form.register('email')} />
                     </FormField>
-                    <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
+                    <FormField info="The number printed on your bills so customers can reach the shop." label="Phone" htmlFor="phone" error={errors.phone?.message}>
                       <Input type="tel" {...form.register('phone')} />
                     </FormField>
-                    <FormField label="Website" htmlFor="website" error={errors.website?.message} className="sm:col-span-2">
+                    <FormField info="Your website, if you have one. It prints on the bill footer." label="Website" htmlFor="website" error={errors.website?.message} className="sm:col-span-2">
                       <Input placeholder="https://" {...form.register('website')} />
                     </FormField>
                   </FormGrid>
@@ -148,19 +148,19 @@ export default function OrganizationSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <FormGrid>
-                    <FormField label="Address line 1" htmlFor="address.line1" className="sm:col-span-2">
+                    <FormField info="The main line of your shop address, printed on every bill." label="Address line 1" htmlFor="address.line1" className="sm:col-span-2">
                       <Input {...form.register('address.line1')} />
                     </FormField>
-                    <FormField label="Address line 2" htmlFor="address.line2" className="sm:col-span-2">
+                    <FormField info="Landmark or area, if the address needs a second line." label="Address line 2" htmlFor="address.line2" className="sm:col-span-2">
                       <Input {...form.register('address.line2')} />
                     </FormField>
-                    <FormField label="City" htmlFor="address.city">
+                    <FormField info="Town or city, printed on your bills." label="City" htmlFor="address.city">
                       <Input {...form.register('address.city')} />
                     </FormField>
                     <FormField label="State" htmlFor="address.state">
                       <Input {...form.register('address.state')} />
                     </FormField>
-                    <FormField label="PIN code" htmlFor="address.pincode" error={errors.address?.pincode?.message}>
+                    <FormField info="Postal code, printed on your bills." label="PIN code" htmlFor="address.pincode" error={errors.address?.pincode?.message}>
                       <Input inputMode="numeric" {...form.register('address.pincode')} />
                     </FormField>
                   </FormGrid>
@@ -174,23 +174,23 @@ export default function OrganizationSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <FormGrid>
-                    <FormField label="GSTIN" htmlFor="tax.gstin" error={errors.tax?.gstin?.message} hint="15 characters, e.g. 27ABCDE1234F1Z5">
+                    <FormField info="Your 15-character GST number. It prints on every tax invoice and is what your GST return is filed under." label="GSTIN" htmlFor="tax.gstin" error={errors.tax?.gstin?.message} hint="15 characters, e.g. 27ABCDE1234F1Z5">
                       <Input className="uppercase" maxLength={15} {...form.register('tax.gstin')} />
                     </FormField>
-                    <FormField label="PAN" htmlFor="tax.pan" error={errors.tax?.pan?.message}>
+                    <FormField info="Your income-tax number, kept with your business record." label="PAN" htmlFor="tax.pan" error={errors.tax?.pan?.message}>
                       <Input className="uppercase" maxLength={10} {...form.register('tax.pan')} />
                     </FormField>
                     <FormField label="State" htmlFor="tax.stateCode" error={errors.tax?.stateCode?.message} required>
                       <StateSelect {...form.register('tax.stateCode')} />
                     </FormField>
-                    <FormField label="Registration type" htmlFor="tax.registrationType">
+                    <FormField info="Whether you are registered as regular, composition or unregistered under GST. It changes how tax is shown on your bills." label="Registration type" htmlFor="tax.registrationType">
                       <Select {...form.register('tax.registrationType')}>
                         <option value="regular">Regular</option>
                         <option value="composition">Composition</option>
                         <option value="unregistered">Unregistered</option>
                       </Select>
                     </FormField>
-                    <FormField label="Financial year starts in" htmlFor="financialYearStartMonth">
+                    <FormField info="The month your books begin, April for most Indian businesses. Yearly reports are grouped from this month." label="Financial year starts in" htmlFor="financialYearStartMonth">
                       <Select {...form.register('financialYearStartMonth', { valueAsNumber: true })}>
                         {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, i) => (
                           <option key={m} value={i + 1}>
@@ -211,19 +211,19 @@ export default function OrganizationSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <FormGrid>
-                    <FormField label="Max discount without override (%)" htmlFor="maxDiscount" hint="Staff need the “Override discount limit” permission beyond this.">
+                    <FormField info="How much discount ordinary staff may give before a manager has to approve it. Set it low to stop discounts leaking away at the counter." label="Max discount without override (%)" htmlFor="maxDiscount" hint="Staff need the “Override discount limit” permission beyond this.">
                       <Controller control={form.control} name="settings.sales.maxDiscountBps" render={({ field }) => <Input type="number" min={0} max={100} step={0.5} value={field.value === undefined ? '' : field.value / 100} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Math.round(Number(e.target.value) * 100))} />} />
                     </FormField>
-                    <FormField label="Default credit period (days)" htmlFor="settings.sales.defaultCreditDays">
+                    <FormField info="The credit period used for new customers when you do not set one on their account." label="Default credit period (days)" htmlFor="settings.sales.defaultCreditDays">
                       <Input type="number" min={0} max={365} {...form.register('settings.sales.defaultCreditDays', { valueAsNumber: true })} />
                     </FormField>
-                    <FormField label="Bill round-off" htmlFor="settings.sales.roundOff">
+                    <FormField info="Whether bill totals are rounded to the nearest rupee, so you are not handing over small change." label="Bill round-off" htmlFor="settings.sales.roundOff">
                       <Select {...form.register('settings.sales.roundOff')}>
                         <option value="nearest">Round to nearest rupee</option>
                         <option value="none">No rounding</option>
                       </Select>
                     </FormField>
-                    <FormField label="Cancellation window (hours)" htmlFor="settings.sales.cancelWindowHours" hint="0 disables cancellation after completion.">
+                    <FormField info="How long after a sale staff may cancel it. After this, only a return is possible, which keeps the audit trail honest." label="Cancellation window (hours)" htmlFor="settings.sales.cancelWindowHours" hint="0 disables cancellation after completion.">
                       <Input type="number" min={0} max={720} {...form.register('settings.sales.cancelWindowHours', { valueAsNumber: true })} />
                     </FormField>
                   </FormGrid>
@@ -244,16 +244,16 @@ export default function OrganizationSettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <FormGrid>
-                    <FormField label="Block sale within N days of expiry" htmlFor="settings.inventory.blockNearExpirySaleDays" hint="Expired stock is always blocked. 0 = no extra window.">
+                    <FormField info="Stop selling stock that expires within this many days. Set it to the margin you are comfortable giving a customer." label="Block sale within N days of expiry" htmlFor="settings.inventory.blockNearExpirySaleDays" hint="Expired stock is always blocked. 0 = no extra window.">
                       <Input type="number" min={0} max={365} {...form.register('settings.inventory.blockNearExpirySaleDays', { valueAsNumber: true })} />
                     </FormField>
-                    <FormField label="Low-stock trigger" htmlFor="settings.inventory.lowStockMode">
+                    <FormField info="How stock is judged to be low, so the dashboard and alerts tell you what to reorder." label="Low-stock trigger" htmlFor="settings.inventory.lowStockMode">
                       <Select {...form.register('settings.inventory.lowStockMode')}>
                         <option value="reorderLevel">Reorder level</option>
                         <option value="minStock">Minimum stock</option>
                       </Select>
                     </FormField>
-                    <FormField label="Adjustment approval threshold (₹)" htmlFor="adjThreshold" hint="Adjustments above this value need approval.">
+                    <FormField info="Stock adjustments worth more than this need a manager to approve them, which protects you against quiet write-offs." label="Adjustment approval threshold (₹)" htmlFor="adjThreshold" hint="Adjustments above this value need approval.">
                       <Controller control={form.control} name="settings.inventory.adjustmentApprovalThresholdMinor" render={({ field }) => <Input type="number" min={0} value={field.value === undefined ? '' : field.value / 100} onChange={(e) => field.onChange(e.target.value === '' ? undefined : Math.round(Number(e.target.value) * 100))} />} />
                     </FormField>
                     <FormField label="Prices include tax" htmlFor="settings.tax.pricesIncludeTax">

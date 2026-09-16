@@ -78,9 +78,9 @@ function LedgerAdjustmentDialog({ partyType, partyId, open, onOpenChange }: { pa
     <Dialog open={open} onOpenChange={(o) => !adjust.isPending && onOpenChange(o)}>
       <DialogContent title="Manual ledger adjustment" description="For write-offs, opening corrections or discounts agreed outside an invoice. Every adjustment is audited." size="sm">
         <div className="space-y-4">
-          <FormField label="Effect" htmlFor="la-dir"><Select value={direction} onChange={(e) => setDirection(e.target.value as typeof direction)}><option value="decrease">Reduce balance (write-off / discount)</option><option value="increase">Increase balance (charge)</option></Select></FormField>
-          <FormField label="Amount" htmlFor="la-amt" required><MoneyInput value={amount} onChange={setAmount} autoFocus /></FormField>
-          <FormField label="Reason" htmlFor="la-reason" required><Textarea value={reason} onChange={(e) => setReason(e.target.value)} /></FormField>
+          <FormField info="Whether this entry increases or decreases what they owe. Use it carefully; every adjustment shows in the ledger and the audit trail." label="Effect" htmlFor="la-dir"><Select value={direction} onChange={(e) => setDirection(e.target.value as typeof direction)}><option value="decrease">Reduce balance (write-off / discount)</option><option value="increase">Increase balance (charge)</option></Select></FormField>
+          <FormField info="The rupee value of the adjustment." label="Amount" htmlFor="la-amt" required><MoneyInput value={amount} onChange={setAmount} autoFocus /></FormField>
+          <FormField info="Why you are adjusting the balance by hand, for example writing off a small rounding difference. Required, because an auditor will ask." label="Reason" htmlFor="la-reason" required><Textarea value={reason} onChange={(e) => setReason(e.target.value)} /></FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={adjust.isPending}>Cancel</Button>

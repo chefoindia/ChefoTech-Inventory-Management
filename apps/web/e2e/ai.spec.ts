@@ -8,7 +8,7 @@ async function registerAndLogin(page: Page, api: APIRequestContext) {
   const res = await api.post(`${API}/auth/register`, { data: { organizationName: 'E2E AI Pharmacy', ownerName: 'E2E Owner', email, password, stateCode: '27' } });
   expect(res.status(), await res.text()).toBe(201);
   await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
+  await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByLabel(/^Password/).fill(password);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);

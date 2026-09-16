@@ -58,8 +58,8 @@ export default function NewAdjustmentPage() {
         <CardHeader><CardTitle>Adjustment</CardTitle><CardDescription>Quantities are in the chosen unit. Decrease-type adjustments remove stock; reconciliation lets you enter signed values.</CardDescription></CardHeader>
         <CardContent>
           <FormGrid className="sm:grid-cols-3">
-            <FormField label="Type" htmlFor="adj-type"><Select value={type} onChange={(e) => setType(e.target.value as typeof type)}>{ADJUSTMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</Select></FormField>
-            <FormField label="Reason" htmlFor="adj-reason"><Select value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>{ADJUSTMENT_REASONS.map((r) => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}</Select></FormField>
+            <FormField info="Whether stock is being added or removed, for example damage, expiry write-off or a correction after a physical count." label="Type" htmlFor="adj-type"><Select value={type} onChange={(e) => setType(e.target.value as typeof type)}>{ADJUSTMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</Select></FormField>
+            <FormField info="Why the stock is being adjusted. This is what an auditor reads later, so be specific." label="Reason" htmlFor="adj-reason"><Select value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>{ADJUSTMENT_REASONS.map((r) => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}</Select></FormField>
             <FormField label="Evidence" htmlFor="adj-files" hint="Photos or count sheets."><FileUpload purpose="adjustmentDocument" multiple accept="image/*,.pdf" onUploaded={(refs) => setAttachments((a) => [...a, ...refs].slice(0, 5))} label="Upload" /></FormField>
           </FormGrid>
           {attachments.length ? <div className="mt-3"><AttachmentList items={attachments} onRemove={(pid) => setAttachments((a) => a.filter((x) => x.publicId !== pid))} /></div> : null}

@@ -84,12 +84,12 @@ test.describe('public website: SEO, links, conversion', () => {
 
   test('demo request form stores a lead and shows confirmation', async ({ page }) => {
     await page.goto('/demo');
-    await page.getByLabel('Your name').fill('Playwright Pharmacy Owner');
-    await page.getByLabel('Email').fill(`lead-${Date.now()}@example.com`);
-    await page.getByLabel('Phone / WhatsApp').fill('+91 98765 43210');
-    await page.getByLabel('Pharmacy name').fill('E2E Medicals');
-    await page.getByLabel('Number of outlets').selectOption('2-3');
-    await page.getByLabel(/anything specific/i).fill('Batch and expiry, please.');
+    await page.getByRole('textbox', { name: 'Your name' }).fill('Playwright Pharmacy Owner');
+    await page.getByRole('textbox', { name: 'Email' }).fill(`lead-${Date.now()}@example.com`);
+    await page.getByRole('textbox', { name: 'Phone / WhatsApp' }).fill('+91 98765 43210');
+    await page.getByRole('textbox', { name: 'Pharmacy name' }).fill('E2E Medicals');
+    await page.getByRole('combobox', { name: 'Number of outlets' }).selectOption('2-3');
+    await page.getByRole('textbox', { name: /anything specific/i }).fill('Batch and expiry, please.');
     await page.getByRole('button', { name: /request a demo/i }).click();
     // Consent was not ticked: an accessible error must appear and nothing is sent.
     await expect(page.getByText(/agree to be contacted/i)).toBeVisible();

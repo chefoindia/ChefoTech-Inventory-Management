@@ -12,6 +12,7 @@ import { newIdempotencyKey } from '@/lib/uuid';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ColumnHint } from '@/components/ui/info-hint';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { MoneyInput } from '@/components/ui/money-input';
 import { ProductPicker } from '@/components/ui/pickers';
@@ -40,7 +41,7 @@ export default function OpeningStockPage() {
         <CardHeader><CardTitle>Lines</CardTitle><CardDescription>Quantity is in the unit you choose; MRP and prices are per the product&apos;s pricing unit.</CardDescription></CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-[13px]">
-            <thead className="bg-surface-muted text-left text-[11px] font-medium uppercase tracking-wide text-fg-subtle"><tr><th className="px-3 py-2 w-[280px]">Product</th><th className="px-2 py-2">Unit</th><th className="px-2 py-2 text-right">Qty</th><th className="px-2 py-2">Batch</th><th className="px-2 py-2">Mfg</th><th className="px-2 py-2">Expiry</th><th className="px-2 py-2 text-right">MRP</th><th className="px-2 py-2 text-right">Selling</th><th className="px-2 py-2 text-right">Cost</th><th className="w-8" /></tr></thead>
+            <thead className="bg-surface-muted text-left text-[11px] font-medium uppercase tracking-wide text-fg-subtle"><tr><th className="px-3 py-2 w-[280px]"><ColumnHint title="Product">The product whose existing shelf stock you are recording. Add the product first if it is not in your catalogue.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Unit">The unit you are counting in. Counting strips? Pick Strip and the system works out the tablets for you.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Qty">How many of that unit are physically on the shelf right now. Count what is there, not what you think should be there.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Batch">The batch number printed on the pack. If one product has two batches on the shelf, add a line for each.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Mfg">The manufacturing date on the pack. Optional.</ColumnHint></th><th className="px-2 py-2"><ColumnHint title="Expiry">The expiry on the pack. Required, because it blocks the sale once passed and drives your near-expiry alerts.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="MRP">The MRP printed on this batch. Older stock often has a different MRP from new stock, which is why it is per batch.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Selling">What you charge for this batch if it is not the MRP. Leave it equal to the MRP if you sell at printed price.</ColumnHint></th><th className="px-2 py-2 text-right"><ColumnHint title="Cost">What you paid per unit for this stock. It sets your opening stock value and your margin reports; leave it blank if you do not know.</ColumnHint></th><th className="w-8" /></tr></thead>
             <tbody className="divide-y divide-border">
               {rows.map((r) => (
                 <tr key={r.key}>

@@ -103,10 +103,10 @@ export function EmailDialog({ open, onOpenChange, type, refId, defaultTo, templa
     <Dialog open={open} onOpenChange={(o) => !email.isPending && onOpenChange(o)}>
       <DialogContent title="Email document" description="The PDF is attached and sent from your organization's sender address." size="sm">
         <div className="space-y-4">
-          <FormField label="To" htmlFor="email-to" required>
+          <FormField info="The email address this document will be sent to. It is filled in from the customer record when there is one." label="To" htmlFor="email-to" required>
             <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} autoFocus />
           </FormField>
-          <FormField label="Message" htmlFor="email-msg" hint="Optional note above the attachment.">
+          <FormField info="A short line in the body of the email. The document itself is attached as a PDF." label="Message" htmlFor="email-msg" hint="Optional note above the attachment.">
             <Textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} />
           </FormField>
         </div>

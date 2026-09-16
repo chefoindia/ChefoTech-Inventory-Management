@@ -56,24 +56,24 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4" noValidate onInput={onFirstInput}>
             {serverError ? <Alert variant="danger">{serverError}</Alert> : null}
-            <FormField label="Pharmacy / organization name" htmlFor="organizationName" error={errors.organizationName?.message} required>
+            <FormField info="Your shop name as customers know it. It appears on your bills and can be changed later in Settings." label="Pharmacy / organization name" htmlFor="organizationName" error={errors.organizationName?.message} required>
               <Input autoFocus placeholder="e.g. Apollo Care Pharmacy" {...form.register('organizationName')} />
             </FormField>
-            <FormField label="State (for GST)" htmlFor="stateCode" error={errors.stateCode?.message} required hint="Used to decide CGST/SGST vs IGST on invoices.">
+            <FormField info="The state your shop is registered in. It decides whether bills carry CGST plus SGST or IGST, so pick the one on your GST certificate." label="State (for GST)" htmlFor="stateCode" error={errors.stateCode?.message} required hint="Used to decide CGST/SGST vs IGST on invoices.">
               <StateSelect {...form.register('stateCode')} />
             </FormField>
             <FormGrid>
-              <FormField label="Your name" htmlFor="ownerName" error={errors.ownerName?.message} required>
+              <FormField info="Your own name. You become the owner of this organization, and your name appears in the audit trail." label="Your name" htmlFor="ownerName" error={errors.ownerName?.message} required>
                 <Input autoComplete="name" {...form.register('ownerName')} />
               </FormField>
-              <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
+              <FormField info="Your contact number. Optional, and used only to reach you about your account." label="Phone" htmlFor="phone" error={errors.phone?.message}>
                 <Input type="tel" autoComplete="tel" placeholder="+91" {...form.register('phone')} />
               </FormField>
             </FormGrid>
-            <FormField label="Email" htmlFor="email" error={errors.email?.message} required>
+            <FormField info="The address you will sign in with, and where account emails are sent." label="Email" htmlFor="email" error={errors.email?.message} required>
               <Input type="email" autoComplete="email" {...form.register('email')} />
             </FormField>
-            <FormField label="Password" htmlFor="password" error={errors.password?.message} required hint="At least 10 characters.">
+            <FormField info="At least 10 characters. This account can see your whole business, so use something you do not use elsewhere." label="Password" htmlFor="password" error={errors.password?.message} required hint="At least 10 characters.">
               <PasswordInput autoComplete="new-password" {...form.register('password')} />
             </FormField>
             <Button type="submit" className="w-full" size="lg" loading={register.isPending}>

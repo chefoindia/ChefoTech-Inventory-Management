@@ -94,9 +94,9 @@ function CategoryDialog({ open, onOpenChange, category, all }: { open: boolean; 
     <Dialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
       <DialogContent title={category ? `Edit ${category.name}` : 'New category'} size="sm">
         <div className="space-y-4">
-          <FormField label="Name" htmlFor="cat-name" required><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></FormField>
-          <FormField label="Parent" htmlFor="cat-parent"><Select value={parentId} onChange={(e) => setParentId(e.target.value)}><option value="">Top level</option>{all.filter((c) => c.id !== category?.id && c.status === 'active').map((c) => <option key={c.id} value={c.id}>{c.path || c.name}</option>)}</Select></FormField>
-          <FormField label="Description" htmlFor="cat-desc"><Textarea className="min-h-[60px]" value={description} onChange={(e) => setDescription(e.target.value)} /></FormField>
+          <FormField info="What this category or unit is called. Categories group products for reports; units are how you count and sell them." label="Name" htmlFor="cat-name" required><Input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></FormField>
+          <FormField info="Put this category under another one, for example Antibiotics under Medicines. Leave blank for a top-level category." label="Parent" htmlFor="cat-parent"><Select value={parentId} onChange={(e) => setParentId(e.target.value)}><option value="">Top level</option>{all.filter((c) => c.id !== category?.id && c.status === 'active').map((c) => <option key={c.id} value={c.id}>{c.path || c.name}</option>)}</Select></FormField>
+          <FormField info="A short note about what belongs in this category, useful when more than one person adds products." label="Description" htmlFor="cat-desc"><Textarea className="min-h-[60px]" value={description} onChange={(e) => setDescription(e.target.value)} /></FormField>
         </div>
         <DialogFooter><Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>Cancel</Button><Button loading={pending} disabled={!name.trim()} onClick={submit}>{category ? 'Save' : 'Create'}</Button></DialogFooter>
       </DialogContent>

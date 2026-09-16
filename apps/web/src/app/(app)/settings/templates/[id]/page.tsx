@@ -86,7 +86,7 @@ export default function TemplateDesignerPage({ params }: { params: Promise<{ id:
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent title="Save a new version" description="Previous versions stay available for restore. Documents generated earlier keep the version they used." size="sm">
-          <FormField label="Change note" htmlFor="ver-note"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Added GSTIN and licence number" autoFocus /></FormField>
+          <FormField info="A line describing what you changed in this version, so you can tell versions apart when you roll one back." label="Change note" htmlFor="ver-note"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Added GSTIN and licence number" autoFocus /></FormField>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setSaveOpen(false)}>Cancel</Button>
             <Button loading={save.isPending} onClick={() => save.mutate({ id: t.id, layout, note }, { onSuccess: (res) => { setDirty(false); setSaveOpen(false); setNote(''); toast.success(`Saved as version ${res.currentVersion}`); }, onError: (e) => toast.error(errorMessage(e)) })}><Save className="h-4 w-4" /> Save</Button>

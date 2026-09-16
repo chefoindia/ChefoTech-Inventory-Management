@@ -83,7 +83,7 @@ export default function TemplatesPage() {
       <CreateTemplateDialog type={createOpen} onClose={() => setCreateOpen(null)} existing={(createOpen && byType.get(createOpen)) || []} onCreated={(t) => router.push(`/settings/templates/${t.id}`)} />
       <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
         <DialogContent title="Rename template" size="sm">
-          <FormField label="Name" htmlFor="tpl-name"><Input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus /></FormField>
+          <FormField info="What you call this document layout, for example A5 Invoice or Thermal Bill." label="Name" htmlFor="tpl-name"><Input value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus /></FormField>
           <DialogFooter><Button variant="secondary" onClick={() => setRenaming(null)}>Cancel</Button><Button loading={rename.isPending} disabled={!newName.trim()} onClick={() => renaming && rename.mutate({ id: renaming.id, name: newName }, { onSuccess: () => { toast.success('Renamed'); setRenaming(null); }, onError: (e) => toast.error(errorMessage(e)) })}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -104,9 +104,9 @@ function CreateTemplateDialog({ type, onClose, existing, onCreated }: { type: Do
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent title={`New ${type ? DOCUMENT_TEMPLATE_LABELS[type].toLowerCase() : ''} template`} description="Starts as a copy of an existing template; you can then move, style and add elements." size="sm">
         <div className="space-y-4">
-          <FormField label="Name" htmlFor="new-tpl-name" required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Counter receipt with logo" autoFocus /></FormField>
-          <FormField label="Copy from" htmlFor="new-tpl-src"><Select value={cloneFromId || source?.id || ''} onChange={(e) => setCloneFromId(e.target.value)}>{existing.map((t) => <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' (default)' : ''}</option>)}</Select></FormField>
-          <FormField label="Outlet" htmlFor="new-tpl-outlet" hint="Optional: use this template only at one outlet."><Select value={outletId} onChange={(e) => setOutletId(e.target.value)}><option value="">All outlets</option>{(outlets.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</Select></FormField>
+          <FormField info="What you call this document layout, for example A5 Invoice or Thermal Bill." label="Name" htmlFor="new-tpl-name" required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Counter receipt with logo" autoFocus /></FormField>
+          <FormField info="Start from an existing template instead of a blank one, then change what you need." label="Copy from" htmlFor="new-tpl-src"><Select value={cloneFromId || source?.id || ''} onChange={(e) => setCloneFromId(e.target.value)}>{existing.map((t) => <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' (default)' : ''}</option>)}</Select></FormField>
+          <FormField info="Which branch uses this template. Leave it unset to use the same layout everywhere." label="Outlet" htmlFor="new-tpl-outlet" hint="Optional: use this template only at one outlet."><Select value={outletId} onChange={(e) => setOutletId(e.target.value)}><option value="">All outlets</option>{(outlets.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</Select></FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>

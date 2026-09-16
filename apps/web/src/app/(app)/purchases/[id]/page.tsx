@@ -17,6 +17,7 @@ import { formatDate, formatDateTime } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, KeyValue } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ColumnHint } from '@/components/ui/info-hint';
 import { Badge, PaymentStatusBadge, DocStatusBadge } from '@/components/ui/badge';
 import { Spinner, ErrorState } from '@/components/ui/states';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
@@ -78,7 +79,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
         <div className="space-y-5 lg:col-span-2">
           <Card>
             <Table>
-              <THead><TR><TH>Item</TH><TH>Batch / Exp</TH><TH numeric>Qty</TH><TH numeric>Received</TH>{canCost ? <><TH numeric>Rate</TH><TH numeric>Disc</TH></> : null}<TH numeric>MRP</TH><TH numeric>GST</TH>{canCost ? <TH numeric>Total</TH> : null}</TR></THead>
+              <THead><TR><TH><ColumnHint title="Item">The product on this line of the supplier invoice.</ColumnHint></TH><TH><ColumnHint title="Batch / Exp">The batch number and expiry that arrived. Stock, MRP and alerts all hang off these.</ColumnHint></TH><TH numeric><ColumnHint title="Qty">How many units the supplier billed you for on this line.</ColumnHint></TH><TH numeric><ColumnHint title="Received">How many have actually been received so far. A smaller number means part of the line is still pending.</ColumnHint></TH>{canCost ? <><TH numeric><ColumnHint title="Rate">What you pay per unit before GST, from the supplier invoice.</ColumnHint></TH><TH numeric><ColumnHint title="Disc">The trade discount the supplier gave on this line. It lowers your cost, not the customer price.</ColumnHint></TH></> : null}<TH numeric><ColumnHint title="MRP">The maximum retail price printed on this batch, used as the ceiling when billing it.</ColumnHint></TH><TH numeric><ColumnHint title="GST">The GST rate charged on this line.</ColumnHint></TH>{canCost ? <TH numeric><ColumnHint title="Total">Line value after discount and GST. It should match the supplier invoice.</ColumnHint></TH> : null}</TR></THead>
               <TBody>
                 {p.lines.map((l) => {
                   const expected = l.qtyBase;
@@ -171,8 +172,8 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
     <Dialog open={open} onOpenChange={(o) => { if (o) init(); if (!create.isPending) onOpenChange(o); }}>
       <DialogContent title={`Receive goods · ${purchase.number}`} description="Check quantities against the physical delivery. Short or damaged items stay pending for a later receipt." size="xl">
         <FormGrid className="sm:grid-cols-3">
-          <FormField label="Received on" htmlFor="grn-date"><Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} /></FormField>
-          <FormField label="Notes" htmlFor="grn-notes" className="sm:col-span-2"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
+          <FormField info="The date the goods actually arrived, which may be later than the invoice date. Stock is added as of this date." label="Received on" htmlFor="grn-date"><Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} /></FormField>
+          <FormField info="Anything about this receipt worth remembering, for example a short supply to follow up." label="Notes" htmlFor="grn-notes" className="sm:col-span-2"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
         </FormGrid>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[900px] text-[13px]">

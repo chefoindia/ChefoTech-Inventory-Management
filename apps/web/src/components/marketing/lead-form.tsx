@@ -64,20 +64,20 @@ export function LeadForm({ type, submitLabel = 'Send request', compact = false }
         <input id="lead-website" type="text" tabIndex={-1} autoComplete="off" {...form.register('website')} />
       </div>
       <FormGrid>
-        <FormField label="Your name" htmlFor="lead-name" required error={errors.name?.message}>
+        <FormField info="So we know who we are writing back to." label="Your name" htmlFor="lead-name" required error={errors.name?.message}>
           <Input autoComplete="name" {...form.register('name')} />
         </FormField>
-        <FormField label="Email" htmlFor="lead-email" required error={errors.email?.message}>
+        <FormField info="Where we will reply. We use it only to answer this enquiry." label="Email" htmlFor="lead-email" required error={errors.email?.message}>
           <Input type="email" autoComplete="email" inputMode="email" {...form.register('email')} />
         </FormField>
-        <FormField label="Phone / WhatsApp" htmlFor="lead-phone" error={errors.phone?.message}>
+        <FormField info="Optional, if you would rather we call or message you." label="Phone / WhatsApp" htmlFor="lead-phone" error={errors.phone?.message}>
           <Input type="tel" autoComplete="tel" inputMode="tel" placeholder="+91" {...form.register('phone')} />
         </FormField>
-        <FormField label="Pharmacy name" htmlFor="lead-pharmacy" error={errors.pharmacyName?.message}>
+        <FormField info="Helps us come prepared with the right example for your kind of shop." label="Pharmacy name" htmlFor="lead-pharmacy" error={errors.pharmacyName?.message}>
           <Input autoComplete="organization" {...form.register('pharmacyName')} />
         </FormField>
         {!compact ? (
-          <FormField label="Number of outlets" htmlFor="lead-outlets" error={errors.outlets?.message}>
+          <FormField info="Tells us whether to show you the single-shop setup or how branches and transfers work." label="Number of outlets" htmlFor="lead-outlets" error={errors.outlets?.message}>
             <Select {...form.register('outlets')}>
               <option value="">Select…</option>
               <option value="1">1 outlet</option>

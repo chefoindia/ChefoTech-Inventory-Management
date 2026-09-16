@@ -93,13 +93,13 @@ export function PrescriptionDialog({ open, onOpenChange, prescription, defaultCu
       <DialogContent title={prescription ? 'Edit prescription' : 'New prescription'} description="Attach a scan or photo and list the medicines so schedule-H sales can reference it." size="lg">
         <div className="space-y-4">
           <FormGrid>
-            <FormField label="Customer" htmlFor="rx-cust" required className="sm:col-span-2"><CustomerPicker value={customerId} onChange={setCustomerId} disabled={!!prescription} /></FormField>
-            <FormField label="Doctor" htmlFor="rx-doc" required><Input value={doctorName} onChange={(e) => setDoctorName(e.target.value)} placeholder="Dr Name" /></FormField>
-            <FormField label="Registration no." htmlFor="rx-reg"><Input value={doctorRegNo} onChange={(e) => setDoctorRegNo(e.target.value)} /></FormField>
-            <FormField label="Hospital / clinic" htmlFor="rx-hosp"><Input value={hospital} onChange={(e) => setHospital(e.target.value)} /></FormField>
-            <FormField label="Diagnosis" htmlFor="rx-diag"><Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} /></FormField>
-            <FormField label="Prescription date" htmlFor="rx-date" required><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FormField>
-            <FormField label="Valid until" htmlFor="rx-valid"><Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} /></FormField>
+            <FormField info="Whose prescription this is. Linking it lets the counter pick it up automatically when you sell a schedule H medicine to them." label="Customer" htmlFor="rx-cust" required className="sm:col-span-2"><CustomerPicker value={customerId} onChange={setCustomerId} disabled={!!prescription} /></FormField>
+            <FormField info="The prescribing doctor name as written on the prescription. It is required in the register for schedule H, H1 and X sales." label="Doctor" htmlFor="rx-doc" required><Input value={doctorName} onChange={(e) => setDoctorName(e.target.value)} placeholder="Dr Name" /></FormField>
+            <FormField info="The doctor medical council registration number, if the prescription shows one. Part of the record a drug inspector may ask for." label="Registration no." htmlFor="rx-reg"><Input value={doctorRegNo} onChange={(e) => setDoctorRegNo(e.target.value)} /></FormField>
+            <FormField info="Where it was prescribed. Useful for tracing the prescription later." label="Hospital / clinic" htmlFor="rx-hosp"><Input value={hospital} onChange={(e) => setHospital(e.target.value)} /></FormField>
+            <FormField info="What the prescription is for, if the doctor wrote it. Optional and only for your record." label="Diagnosis" htmlFor="rx-diag"><Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} /></FormField>
+            <FormField info="The date the doctor wrote it. This decides whether the prescription is still valid for a repeat sale." label="Prescription date" htmlFor="rx-date" required><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FormField>
+            <FormField info="The last day this prescription may be dispensed against. Leave blank if the doctor did not set one." label="Valid until" htmlFor="rx-valid"><Input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} /></FormField>
           </FormGrid>
           <div>
             <div className="mb-1 text-[13px] font-medium">Medicines</div>
@@ -120,7 +120,7 @@ export function PrescriptionDialog({ open, onOpenChange, prescription, defaultCu
             <div className="mb-1 flex items-center justify-between gap-2"><span className="text-[13px] font-medium">Scans / photos</span><div className="flex items-center gap-2">{ai.available && files.length ? <Button variant="secondary" size="sm" loading={extract.isPending} onClick={() => readWithAi(files[files.length - 1]!)} title="Reads the last uploaded file and fills the medicines for your review"><Sparkles className="h-3.5 w-3.5" /> Read with AI</Button> : null}<FileUpload purpose="prescription" multiple accept="image/*,.pdf" onUploaded={(refs) => setFiles((f) => [...f, ...refs].slice(0, 10))} label="Upload" /></div></div>
             <AttachmentList items={files} onRemove={(pid) => setFiles((f) => f.filter((x) => x.publicId !== pid))} />
           </div>
-          <FormField label="Notes" htmlFor="rx-notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
+          <FormField info="Anything about this prescription your team should know, for example that the original was retained in the shop." label="Notes" htmlFor="rx-notes"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>Cancel</Button>

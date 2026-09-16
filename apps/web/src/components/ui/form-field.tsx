@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Label } from './input';
+import { InfoHint } from './info-hint';
 
 /**
  * Wires label, hint and error to a control via aria attributes. The child control receives
@@ -10,6 +11,7 @@ export function FormField({
   label,
   htmlFor,
   hint,
+  info,
   error,
   required,
   className,
@@ -18,6 +20,8 @@ export function FormField({
   label: string;
   htmlFor: string;
   hint?: React.ReactNode;
+  /** Longer "what is this for?" explanation behind an info button next to the label. */
+  info?: React.ReactNode;
   error?: string;
   required?: boolean;
   className?: string;
@@ -40,10 +44,15 @@ export function FormField({
       : React.cloneElement(children, injected);
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={htmlFor}>
-        {label}
-        {required ? <span className="ml-0.5 text-danger-600" aria-hidden>*</span> : null}
-      </Label>
+      {/* The info button sits beside the label, never inside it: a button within <label> would be
+          read out as part of the field's own name by screen readers. */}
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={htmlFor}>
+          {label}
+          {required ? <span className="ml-0.5 text-danger-600" aria-hidden>*</span> : null}
+        </Label>
+        {info ? <InfoHint title={label}>{info}</InfoHint> : null}
+      </div>
       {control}
       {error ? (
         <p id={errorId} className="text-[12px] text-danger-600">

@@ -19,6 +19,7 @@ import { money, baseToDisplay } from '@/lib/format';
 import { formatDate, relativeTime, cn } from '@/lib/utils';
 import { type CartLine, type CartHeader, type CartProduct, toCartProduct, defaultSaleUnit, lineKey, toSaleLines, emptyHeader, toHoldInput, unitFactor } from '@/features/sales/pos-state';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ColumnHint } from '@/components/ui/info-hint';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { MoneyInput, PercentInput } from '@/components/ui/money-input';
 import { Badge } from '@/components/ui/badge';
@@ -354,11 +355,11 @@ export default function PosPage() {
               <table className="w-full text-sm">
                 <thead className="bg-surface-muted text-left text-[12px] font-medium uppercase tracking-wide text-fg-subtle">
                   <tr>
-                    <th className="px-3 py-2">Item</th>
-                    <th className="px-2 py-2">Batch</th>
-                    <th className="px-2 py-2">Unit</th>
-                    <th className="px-2 py-2 text-right">Qty</th>
-                    <th className="px-2 py-2 text-right">Price</th>
+                    <th className="px-3 py-2"><ColumnHint title="Item">The product being sold. Search by brand, salt or barcode.</ColumnHint></th>
+                    <th className="px-2 py-2"><ColumnHint title="Batch">Which batch goes out. The one expiring first is chosen automatically; change it only if you are handing over a different pack.</ColumnHint></th>
+                    <th className="px-2 py-2"><ColumnHint title="Unit">Sell by strip or by loose tablet. Switching here converts the price and the stock deduction for you.</ColumnHint></th>
+                    <th className="px-2 py-2 text-right"><ColumnHint title="Qty">How many of the chosen unit. Stock is reduced in base units behind the scenes, so 2 strips of 15 removes 30 tablets.</ColumnHint></th>
+                    <th className="px-2 py-2 text-right"><ColumnHint title="Price">Price for one of the chosen unit, taken from the batch. Staff can change it only if their role allows overriding price.</ColumnHint></th>
                     {canDiscount ? <th className="px-2 py-2 text-right">Disc %</th> : null}
                     <th className="px-2 py-2 text-right">Total</th>
                     <th className="w-8" />
@@ -521,7 +522,7 @@ export default function PosPage() {
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogContent title="Notes & custom fields" size="md">
           <div className="space-y-4">
-            <FormField label="Notes" htmlFor="pos-notes"><Textarea value={header.notes} onChange={(e) => setHeader((h) => ({ ...h, notes: e.target.value }))} /></FormField>
+            <FormField info="A note kept with the sale for your own reference." label="Notes" htmlFor="pos-notes"><Textarea value={header.notes} onChange={(e) => setHeader((h) => ({ ...h, notes: e.target.value }))} /></FormField>
             <CustomFieldsForm entity="sale" values={header.customFields} onChange={(v) => setHeader((h) => ({ ...h, customFields: v }))} />
           </div>
           <DialogFooter><Button onClick={() => setMoreOpen(false)}>Done</Button></DialogFooter>
@@ -539,7 +540,7 @@ function HoldDialog({ open, onOpenChange, defaultLabel, loading, onHold }: { ope
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent title="Hold this bill" description="Park the bill so another customer can be served. Stock is not reserved." size="sm">
-        <FormField label="Label" htmlFor="hold-label" hint="Customer name, token number…">
+        <FormField info="A short name for this held bill, so you can recognise it when you come back to it, for example the customer name." label="Label" htmlFor="hold-label" hint="Customer name, token number…">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') onHold(label); }} />
         </FormField>
         <DialogFooter>

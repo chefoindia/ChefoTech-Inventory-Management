@@ -65,13 +65,13 @@ export function RecordPaymentDialog({ partyType, open, onOpenChange, partyId: fi
             </FormField>
           ) : null}
           <FormGrid className="sm:grid-cols-4">
-            <FormField label="Amount" htmlFor="pay-amount" required className="sm:col-span-2"><MoneyInput value={amount} onChange={setAmount} autoFocus /></FormField>
-            <FormField label="Method" htmlFor="pay-method">
+            <FormField info="How much money is actually moving now. For a part payment, enter only what was received or paid today; the rest stays outstanding." label="Amount" htmlFor="pay-amount" required className="sm:col-span-2"><MoneyInput value={amount} onChange={setAmount} autoFocus /></FormField>
+            <FormField info="How the money moved: cash, UPI, card, bank transfer or cheque. Your payment mix report is built from this." label="Method" htmlFor="pay-method">
               <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>{TENDER_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}</Select>
             </FormField>
-            <FormField label="Date" htmlFor="pay-date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FormField>
-            <FormField label="Reference" htmlFor="pay-ref" className="sm:col-span-2"><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="UTR / cheque no." /></FormField>
-            <FormField label="Notes" htmlFor="pay-notes" className="sm:col-span-2"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
+            <FormField info="The day the money actually moved. Use the real date if you are entering it later, so the ledger stays accurate." label="Date" htmlFor="pay-date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></FormField>
+            <FormField info="A UPI reference, cheque number or transaction id, so you can match this entry to your bank statement." label="Reference" htmlFor="pay-ref" className="sm:col-span-2"><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="UTR / cheque no." /></FormField>
+            <FormField info="Anything worth remembering about this payment, for example that a cheque is post-dated." label="Notes" htmlFor="pay-notes" className="sm:col-span-2"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
           </FormGrid>
 
           {partyId ? (

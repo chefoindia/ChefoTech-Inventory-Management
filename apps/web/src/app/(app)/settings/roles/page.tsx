@@ -135,10 +135,10 @@ function RoleDialog({ role, open, onOpenChange, groups }: { role: RoleDto | null
         {isOwnerRole ? <Alert variant="info" className="mb-4">The Owner role always has every permission and cannot be edited.</Alert> : null}
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="Role name" htmlFor="name" error={errors.name?.message} required>
+            <FormField info="What you call this set of permissions, for example Evening Cashier. Staff see it next to their name." label="Role name" htmlFor="name" error={errors.name?.message} required>
               <Input autoFocus disabled={!!role?.isSystem} {...form.register('name')} />
             </FormField>
-            <FormField label="Description" htmlFor="description" error={errors.description?.message}>
+            <FormField info="A line reminding you what this role is for, so you do not have to read the permission list to remember." label="Description" htmlFor="description" error={errors.description?.message}>
               <Textarea rows={1} className="min-h-[36px]" disabled={isOwnerRole} {...form.register('description')} />
             </FormField>
           </div>

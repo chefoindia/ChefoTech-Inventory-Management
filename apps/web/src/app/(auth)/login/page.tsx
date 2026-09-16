@@ -49,10 +49,10 @@ function LoginForm() {
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {serverError ? <Alert variant="danger">{serverError}</Alert> : null}
-          <FormField label="Email" htmlFor="email" error={form.formState.errors.email?.message} required>
+          <FormField info="The address your organization invited, or the one you registered with." label="Email" htmlFor="email" error={form.formState.errors.email?.message} required>
             <Input type="email" autoComplete="email" autoFocus {...form.register('email')} />
           </FormField>
-          <FormField label="Password" htmlFor="password" error={form.formState.errors.password?.message} required>
+          <FormField info="Your own password. If you have forgotten it, ask your organization owner to help you reset it." label="Password" htmlFor="password" error={form.formState.errors.password?.message} required>
             <PasswordInput autoComplete="current-password" {...form.register('password')} />
           </FormField>
           <Button type="submit" className="w-full" size="lg" loading={login.isPending}>

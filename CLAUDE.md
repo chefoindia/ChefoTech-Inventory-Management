@@ -50,6 +50,8 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 - Financial POSTs send an `Idempotency-Key` from `newIdempotencyKey()`; rotate it after a failed attempt (the API also releases keys on 4xx/5xx).
 - Pages that read `useSearchParams` wrap their body in `<Suspense>`.
 - `FormField` injects `id`/aria attributes into its child, including through a react-hook-form `Controller`.
+- Every field carries an `info` explanation rendered as an info button beside the label (`components/ui/info-hint.tsx`); line tables use `ColumnHint` on the header instead of one button per row. Write the explanation in plain words: what the field is for, where it shows up, and an example. The button sits BESIDE the label, never inside it, or it becomes part of the field's accessible name.
+- Because the button is named `What is "X" for?`, a non-anchored `getByLabel('X')` matches it too. In tests use `getByRole('textbox', { name: 'X' })` or an anchored regex.
 - `react-hooks/set-state-in-effect` is a warning, not an error: dialogs legitimately reset local state when they open.
 
 ## Environment

@@ -80,56 +80,56 @@ function OutletDialog({ open, onOpenChange, outlet }: { open: boolean; onOpenCha
       <DialogContent title={outlet ? `Edit ${outlet.name}` : 'New outlet'} description="Each outlet keeps its own stock, sales, numbering and printer defaults." size="lg">
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <FormGrid>
-            <FormField label="Outlet name" htmlFor="name" error={errors.name?.message} required>
+            <FormField info="What you call this branch, for example Main Shop or the area name. It appears in the outlet switcher and on its bills." label="Outlet name" htmlFor="name" error={errors.name?.message} required>
               <Input autoFocus {...form.register('name')} />
             </FormField>
-            <FormField label="Code" htmlFor="code" error={errors.code?.message} required hint="Short unique code, used in document numbers.">
+            <FormField info="A short code for this branch, such as MAIN or PWI. It prefixes invoice numbers so you can tell branches apart at a glance." label="Code" htmlFor="code" error={errors.code?.message} required hint="Short unique code, used in document numbers.">
               <Input className="uppercase" maxLength={10} {...form.register('code')} />
             </FormField>
-            <FormField label="Type" htmlFor="type">
+            <FormField info="Whether this is a retail counter, a warehouse or a distribution point. It affects which screens make sense here." label="Type" htmlFor="type">
               <Select {...form.register('type')}>
                 <option value="retail">Retail counter</option>
                 <option value="warehouse">Warehouse / godown</option>
               </Select>
             </FormField>
-            <FormField label="State" htmlFor="stateCode" error={errors.stateCode?.message} required>
+            <FormField info="The state this outlet is in. It decides CGST plus SGST versus IGST on its bills, so it must match your registration." label="State" htmlFor="stateCode" error={errors.stateCode?.message} required>
               <StateSelect {...form.register('stateCode')} />
             </FormField>
-            <FormField label="GSTIN" htmlFor="gstin" error={errors.gstin?.message} hint="Leave blank to use the organization GSTIN.">
+            <FormField info="The GST number registered for this branch, if it has its own. It prints on this outlet bills." label="GSTIN" htmlFor="gstin" error={errors.gstin?.message} hint="Leave blank to use the organization GSTIN.">
               <Input className="uppercase" maxLength={15} {...form.register('gstin')} />
             </FormField>
-            <FormField label="Drug licence no." htmlFor="drugLicenseNo" error={errors.drugLicenseNo?.message}>
+            <FormField info="The drug licence for this branch, as issued by the state authority. It prints on bills and is what an inspector asks for." label="Drug licence no." htmlFor="drugLicenseNo" error={errors.drugLicenseNo?.message}>
               <Input {...form.register('drugLicenseNo')} />
             </FormField>
-            <FormField label="Drug licence expiry" htmlFor="drugLicenseExpiry" error={errors.drugLicenseExpiry?.message}>
+            <FormField info="When the licence has to be renewed. You will be reminded before it lapses." label="Drug licence expiry" htmlFor="drugLicenseExpiry" error={errors.drugLicenseExpiry?.message}>
               <Input type="date" {...form.register('drugLicenseExpiry', { setValueAs: (v) => (v ? new Date(v) : undefined) })} defaultValue={outlet?.drugLicenseExpiry ? outlet.drugLicenseExpiry.slice(0, 10) : ''} />
             </FormField>
-            <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
+            <FormField info="The number for this branch, printed on its bills." label="Phone" htmlFor="phone" error={errors.phone?.message}>
               <Input type="tel" {...form.register('phone', { setValueAs: (v) => v || undefined })} />
             </FormField>
-            <FormField label="Email" htmlFor="email" error={errors.email?.message}>
+            <FormField info="The email for this branch, used as the reply address on invoices sent from here." label="Email" htmlFor="email" error={errors.email?.message}>
               <Input type="email" {...form.register('email', { setValueAs: (v) => v || undefined })} />
             </FormField>
-            <FormField label="Default printer" htmlFor="settings.defaultPrinter">
+            <FormField info="The paper size bills print on here: A4, A5 or a thermal roll. Set it to match the printer on this counter." label="Default printer" htmlFor="settings.defaultPrinter">
               <Select {...form.register('settings.defaultPrinter')}>
                 <option value="a4">A4 invoice</option>
                 <option value="thermal80">Thermal 80mm</option>
                 <option value="thermal58">Thermal 58mm</option>
               </Select>
             </FormField>
-            <FormField label="Address line 1" htmlFor="address.line1" className="sm:col-span-2">
+            <FormField info="The street address of this branch, printed on its bills." label="Address line 1" htmlFor="address.line1" className="sm:col-span-2">
               <Input {...form.register('address.line1')} />
             </FormField>
-            <FormField label="City" htmlFor="address.city">
+            <FormField info="Town or city of this branch." label="City" htmlFor="address.city">
               <Input {...form.register('address.city')} />
             </FormField>
-            <FormField label="PIN code" htmlFor="address.pincode">
+            <FormField info="Postal code of this branch." label="PIN code" htmlFor="address.pincode">
               <Input inputMode="numeric" {...form.register('address.pincode')} />
             </FormField>
-            <FormField label="Business hours" htmlFor="settings.businessHours" className="sm:col-span-2" hint="Free text, e.g. Mon–Sat 9:00–21:00; available to document templates.">
+            <FormField info="When this branch is open. Shown to your team and printed on the bill if your template includes it." label="Business hours" htmlFor="settings.businessHours" className="sm:col-span-2" hint="Free text, e.g. Mon–Sat 9:00–21:00; available to document templates.">
               <Input {...form.register('settings.businessHours')} />
             </FormField>
-            <FormField label="Invoice footer note" htmlFor="settings.invoiceFooterNote" className="sm:col-span-2" hint="Printed at the bottom of this outlet's invoices.">
+            <FormField info="A line printed at the bottom of every bill from this outlet, for example your return policy or a thank-you." label="Invoice footer note" htmlFor="settings.invoiceFooterNote" className="sm:col-span-2" hint="Printed at the bottom of this outlet's invoices.">
               <Input {...form.register('settings.invoiceFooterNote')} />
             </FormField>
           </FormGrid>
