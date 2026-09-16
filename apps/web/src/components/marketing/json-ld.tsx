@@ -7,6 +7,12 @@ export function JsonLd({ data }: { data: Record<string, unknown> }) {
 
 export function organizationJsonLd() {
   const sameAs = Object.values(SITE.social).filter(Boolean);
+  const { contact } = SITE;
+  const contactPoint = [
+    contact.email || contact.phone ? { '@type': 'ContactPoint', contactType: 'customer support', ...(contact.email ? { email: contact.email } : {}), ...(contact.phone ? { telephone: contact.phone.replace(/\s+/g, '') } : {}), availableLanguage: ['en', 'hi', 'or'] } : null,
+    contact.salesEmail ? { '@type': 'ContactPoint', contactType: 'sales', email: contact.salesEmail, ...(contact.altPhone ? { telephone: contact.altPhone.replace(/\s+/g, '') } : {}), availableLanguage: ['en', 'hi', 'or'] } : null,
+  ].filter(Boolean);
+  const head = contact.offices[0];
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -14,7 +20,9 @@ export function organizationJsonLd() {
     url: SITE.companyUrl ?? SITE.url,
     ...(SITE.companyLogo ? { logo: absoluteUrl(SITE.companyLogo) } : {}),
     ...(sameAs.length ? { sameAs } : {}),
-    ...(SITE.contact.email ? { contactPoint: [{ '@type': 'ContactPoint', contactType: 'sales', email: SITE.contact.email, ...(SITE.contact.phone ? { telephone: SITE.contact.phone } : {}), availableLanguage: ['en', 'hi'] }] } : {}),
+    ...(contactPoint.length ? { contactPoint } : {}),
+    ...(head ? { address: { '@type': 'PostalAddress', streetAddress: head.lines.join(', '), addressLocality: contact.city, addressRegion: contact.region, addressCountry: contact.country } } : {}),
+    ...(contact.person ? { employee: { '@type': 'Person', name: contact.person, jobTitle: 'Contact' } } : {}),
   };
 }
 

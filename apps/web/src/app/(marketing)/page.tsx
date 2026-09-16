@@ -10,6 +10,7 @@ import { TrackedLink } from '@/components/marketing/tracked-link';
 import { AssistantMock } from '@/components/marketing/assistant-mock';
 import { LandingView } from '@/components/marketing/landing-view';
 import { JsonLd, softwareJsonLd } from '@/components/marketing/json-ld';
+import { BarcodeSection } from '@/components/marketing/barcode-section';
 
 export const metadata: Metadata = {
   title: { absolute: 'PharmaOS · Pharmacy Management Software by ChefoTech' },
@@ -114,6 +115,9 @@ export default function HomePage() {
           </div>
         </Container>
       </Section>
+
+      {/* Barcode scanning */}
+      <BarcodeSection />
 
       {/* AI */}
       <Section id="ai">

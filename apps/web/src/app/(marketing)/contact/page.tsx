@@ -17,7 +17,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const { topic } = await searchParams;
   const type = topic === 'sales' ? 'sales' : 'contact';
   const { contact } = SITE;
-  const hasDetails = !!(contact.email || contact.phone || contact.whatsapp || contact.address || contact.hours);
+  const hasDetails = !!(contact.email || contact.phone || contact.whatsapp || contact.offices.length || contact.hours);
   return (
     <>
       <JsonLd data={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Contact', path: '/contact' }])} />
@@ -36,12 +36,17 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <aside className="space-y-6">
               {hasDetails ? (
                 <div className="rounded-[var(--radius-card)] border border-border bg-surface-muted p-5">
-                  <h2 className="text-[15px] font-semibold text-fg">Reach us directly</h2>
+                  <h2 className="text-[15px] font-semibold text-fg">Reach {SITE.company} directly</h2>
+                  {contact.person ? <p className="mt-1 text-[13px] text-fg-muted">Ask for {contact.person}.</p> : null}
                   <ul className="mt-3 space-y-2.5 text-[14px] text-fg-muted">
-                    {contact.email ? <li className="flex items-start gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><a href={`mailto:${contact.email}`} className="hover:text-fg hover:underline">{contact.email}</a></li> : null}
-                    {contact.phone ? <li className="flex items-start gap-2.5"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><a href={`tel:${contact.phone.replace(/\s+/g, '')}`} className="hover:text-fg hover:underline">{contact.phone}</a></li> : null}
+                    {contact.phone ? <li className="flex items-start gap-2.5"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span><a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`} className="hover:text-fg hover:underline">{contact.phone}</a>{contact.altPhone ? <> <span className="text-fg-subtle">or</span> <a href={`tel:${contact.altPhone.replace(/[^\d+]/g, '')}`} className="hover:text-fg hover:underline">{contact.altPhone}</a></> : null}</span></li> : null}
                     {contact.whatsapp ? <li className="flex items-start gap-2.5"><MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><a href={`https://wa.me/${contact.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-fg hover:underline">WhatsApp {contact.whatsapp}</a></li> : null}
-                    {contact.address ? <li className="flex items-start gap-2.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span className="whitespace-pre-line">{contact.address}</span></li> : null}
+                    {contact.email ? <li className="flex items-start gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span><a href={`mailto:${contact.email}`} className="hover:text-fg hover:underline">{contact.email}</a> <span className="text-fg-subtle">for support</span></span></li> : null}
+                    {contact.salesEmail && contact.salesEmail !== contact.email ? <li className="flex items-start gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span><a href={`mailto:${contact.salesEmail}`} className="hover:text-fg hover:underline">{contact.salesEmail}</a> <span className="text-fg-subtle">for sales and partnerships</span></span></li> : null}
+                    {contact.otherEmails.length ? <li className="flex items-start gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-fg-faint" aria-hidden /><span className="text-[13px]">Also: {contact.otherEmails.map((e, i) => <span key={e}>{i ? ', ' : ''}<a href={`mailto:${e}`} className="hover:text-fg hover:underline">{e}</a></span>)}</span></li> : null}
+                    {contact.offices.map((o) => (
+                      <li key={o.label} className="flex items-start gap-2.5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span><span className="block text-[12px] font-medium text-fg-subtle">{o.label}</span>{o.lines.map((l) => <span key={l} className="block">{l}</span>)}</span></li>
+                    ))}
                     {contact.hours ? <li className="flex items-start gap-2.5"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" aria-hidden /><span>{contact.hours}</span></li> : null}
                   </ul>
                 </div>

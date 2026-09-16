@@ -25,7 +25,8 @@ Multi-tenant, multi-outlet pharmacy operations platform. pnpm monorepo: `apps/ap
 9. Every list view has loading, empty and error states; every form maps server field errors via `applyServerErrors`.
 
 ## Public website & brand
-- PharmaOS is a ChefoTech product. Brand/company config lives in `apps/web/src/lib/site.ts`; contact details, social links and the logo come from `NEXT_PUBLIC_*` env vars and are rendered only when set. Never hard-code contact information.
+- PharmaOS is a ChefoTech product. Brand/company config lives in `apps/web/src/lib/site.ts`: the real ChefoTech contact details (person, phones, WhatsApp, inboxes, two Bhubaneswar offices) and the emblem `/brand/chefotech.svg` are the defaults there, and every item can be overridden or hidden (empty string) with `NEXT_PUBLIC_*` env vars. Contact details are only ever edited in `site.ts` or env; never type them anywhere else and never invent new ones.
+- Marketing illustrations are our own SVGs in `components/marketing/illustrations.tsx` (brand palette), not stock photos. `BarcodeSection` describes scanning exactly as shipped: keyboard-wedge scanners, barcode lookup with search fallback, several barcodes per product tied to units, label printing. Batch/expiry are not read from barcodes; do not claim it.
 - Marketing pages live in `apps/web/src/app/(marketing)`; shared blocks in `components/marketing`; copy for FAQ and solution pages in `src/content`. Every page sets `title`, `description`, `alternates.canonical` and `...og(...)` from `lib/site.ts`. Descriptions ≤175 chars, titles ≤70 (enforced by `e2e/marketing.spec.ts`).
 - Only describe features that exist; no superlatives or unverified claims ("No. 1", "guaranteed").
 - Website forms post to `POST /api/v1/leads` (public, rate-limited). Analytics go through `lib/analytics.ts` `track()`; never send personal data in events.

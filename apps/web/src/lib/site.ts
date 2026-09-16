@@ -6,9 +6,10 @@
  * when it is configured. See apps/web/.env.example.
  */
 
+/** Reads an override. Unset → undefined (use the default); set to empty → '' (hide the item). */
 const env = (key: string): string | undefined => {
   const v = process.env[key];
-  return v && v.trim() ? v.trim() : undefined;
+  return v === undefined ? undefined : v.trim();
 };
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3000') as string;
@@ -24,13 +25,32 @@ export const SITE = {
     'PharmaOS by ChefoTech is pharmacy management software for billing, inventory, batches and expiry, purchases, customer credit (Baki), GST invoices, reports and multi-outlet control, with an optional AI assistant.',
   locale: 'en_IN',
   url: SITE_URL,
-  /** Optional company details (rendered only when set). */
+  /**
+   * ChefoTech contact details, supplied by the company. Each one can still be overridden per
+   * deployment through NEXT_PUBLIC_* variables; an empty override removes the item from the site.
+   */
   contact: {
-    email: process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || undefined,
-    phone: process.env.NEXT_PUBLIC_CONTACT_PHONE?.trim() || undefined,
-    whatsapp: process.env.NEXT_PUBLIC_CONTACT_WHATSAPP?.trim() || undefined,
-    address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS?.trim() || undefined,
-    hours: process.env.NEXT_PUBLIC_SUPPORT_HOURS?.trim() || undefined,
+    person: env('NEXT_PUBLIC_CONTACT_PERSON') ?? 'Rakesh Biswal',
+    phone: env('NEXT_PUBLIC_CONTACT_PHONE') ?? '+91 99381 79834',
+    altPhone: env('NEXT_PUBLIC_CONTACT_ALT_PHONE') ?? '+91 97777 05759',
+    whatsapp: env('NEXT_PUBLIC_CONTACT_WHATSAPP') ?? '+91 77354 76804',
+    /** Primary, shown wherever a single address is needed. */
+    email: env('NEXT_PUBLIC_CONTACT_EMAIL') ?? 'support@chefo.in',
+    salesEmail: env('NEXT_PUBLIC_SALES_EMAIL') ?? 'contact@chefo.in',
+    /** Other addresses the company also answers from. */
+    otherEmails: (env('NEXT_PUBLIC_OTHER_EMAILS') ?? 'chefoindia25@gmail.com, rb2306114@gmail.com').split(',').map((e) => e.trim()).filter(Boolean),
+    offices: [
+      { label: 'Head office', lines: (env('NEXT_PUBLIC_OFFICE_1') ?? 'Jyotsna Enclave, beside Mayfair Lagoon|8B Jayadev Vihar, Bhubaneswar, Odisha, India').split('|') },
+      { label: 'Second office', lines: (env('NEXT_PUBLIC_OFFICE_2') ?? 'In front of SIP Abacus, KIIT Square|Bhubaneswar, Odisha, India').split('|') },
+    ].filter((o) => o.lines.some((l) => l.trim())),
+    /** Single-line head office address for places with no room for two. */
+    get address(): string {
+      return this.offices[0]?.lines.join(', ') ?? '';
+    },
+    hours: env('NEXT_PUBLIC_SUPPORT_HOURS'),
+    city: 'Bhubaneswar',
+    region: 'Odisha',
+    country: 'IN',
   },
   social: {
     linkedin: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN?.trim() || undefined,
@@ -41,14 +61,11 @@ export const SITE = {
   },
   /** Parent company website, if different from this site. */
   companyUrl: process.env.NEXT_PUBLIC_COMPANY_URL?.trim() || undefined,
-  /** Path to the ChefoTech logo file placed in apps/web/public (e.g. /brand/chefotech.svg). Falls back to a wordmark. */
-  companyLogo: process.env.NEXT_PUBLIC_COMPANY_LOGO?.trim() || undefined,
+  /** The ChefoTech mark. Replace the file in apps/web/public/brand to update it everywhere. */
+  companyLogo: env('NEXT_PUBLIC_COMPANY_LOGO') ?? '/brand/chefotech.svg',
   /** Google Search Console HTML-tag verification token, if any. */
   googleVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || undefined,
 };
-
-// Keep the helper referenced so tree-shaking never drops env inlining on the server.
-void env;
 
 export const absoluteUrl = (path: string) => `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 

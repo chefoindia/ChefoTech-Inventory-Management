@@ -43,9 +43,20 @@ export default function AboutPage() {
             <h2 className="text-xl font-semibold text-fg">Contact</h2>
             <p className="mt-3">
               Sales, support and partnership questions: <Link href="/contact" className="font-medium text-primary-700 hover:underline">contact form</Link>
-              {SITE.contact.email ? <> or <a href={`mailto:${SITE.contact.email}`} className="font-medium text-primary-700 hover:underline">{SITE.contact.email}</a></> : null}.
-              {SITE.contact.address ? <span className="mt-2 block whitespace-pre-line">{SITE.contact.address}</span> : null}
+              {SITE.contact.email ? <>, <a href={`mailto:${SITE.contact.email}`} className="font-medium text-primary-700 hover:underline">{SITE.contact.email}</a></> : null}
+              {SITE.contact.phone ? <> or <a href={`tel:${SITE.contact.phone.replace(/[^\d+]/g, '')}`} className="font-medium text-primary-700 hover:underline">{SITE.contact.phone}</a></> : null}.
+              {SITE.contact.person ? <> Ask for {SITE.contact.person}.</> : null}
             </p>
+            {SITE.contact.offices.length ? (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {SITE.contact.offices.map((o) => (
+                  <address key={o.label} className="rounded-[var(--radius-card)] border border-border bg-surface p-4 not-italic">
+                    <div className="text-[12px] font-semibold uppercase tracking-wide text-fg-subtle">{o.label}</div>
+                    {o.lines.map((l) => <div key={l} className="mt-1 text-[14px] text-fg">{l}</div>)}
+                  </address>
+                ))}
+              </div>
+            ) : null}
           </div>
         </Container>
       </Section>

@@ -109,6 +109,35 @@ test.describe('public website: SEO, links, conversion', () => {
     await expect(page.locator('#mobile-menu')).toHaveCount(0);
   });
 
+  test('ChefoTech contact details, emblem and the barcode walkthrough are on the site', async ({ page }) => {
+    await page.goto('/');
+    const footer = page.locator('footer');
+    await expect(footer.getByRole('link', { name: '+91 99381 79834' })).toHaveAttribute('href', 'tel:+919938179834');
+    await expect(footer.getByRole('link', { name: /WhatsApp \+91 77354 76804/ })).toHaveAttribute('href', 'https://wa.me/917735476804');
+    await expect(footer.getByRole('link', { name: 'support@chefo.in' })).toHaveAttribute('href', 'mailto:support@chefo.in');
+    await expect(footer.getByText('Jyotsna Enclave, beside Mayfair Lagoon')).toBeVisible();
+    await expect(footer.getByText('In front of SIP Abacus, KIIT Square')).toBeVisible();
+    await expect(footer.locator('img[src*="/brand/chefotech"]')).toHaveCount(1);
+    const barcode = page.locator('#barcode');
+    await expect(barcode.getByRole('heading', { level: 2 })).toHaveText(/Scan the pack/);
+    await expect(barcode.getByRole('listitem')).toHaveCount(3);
+    await expect(barcode.locator('svg[role="img"]')).toHaveCount(3);
+    const org = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const organization = org.map((t) => JSON.parse(t)).find((d) => d['@type'] === 'Organization');
+    expect(organization?.address?.addressLocality).toBe('Bhubaneswar');
+    expect(organization?.contactPoint?.map((c: { telephone?: string }) => c.telephone)).toContain('+919938179834');
+
+    await page.goto('/contact');
+    const aside = page.locator('aside');
+    await expect(aside.getByText('Ask for Rakesh Biswal.')).toBeVisible();
+    await expect(aside.getByRole('link', { name: '+91 97777 05759' })).toBeVisible();
+    await expect(aside.getByRole('link', { name: 'contact@chefo.in' })).toBeVisible();
+    await expect(aside.getByText('Second office')).toBeVisible();
+
+    await page.goto('/pharmacy-pos');
+    await expect(page.locator('#barcode').getByRole('listitem')).toHaveCount(3);
+  });
+
   test('404 page is branded and links home', async ({ page }) => {
     const res = await page.goto('/this-page-does-not-exist');
     expect(res?.status()).toBe(404);

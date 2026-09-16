@@ -9,6 +9,7 @@ import { Container, Section, Heading, FeatureGrid, Screenshot, SplitFeature, Faq
 import { TrackedLink } from '@/components/marketing/tracked-link';
 import { LandingView } from '@/components/marketing/landing-view';
 import { JsonLd, breadcrumbJsonLd } from '@/components/marketing/json-ld';
+import { BarcodeSection } from '@/components/marketing/barcode-section';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +76,9 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           </Container>
         ))}
       </Section>
+
+      {/* Counter-focused pages get the illustrated barcode walkthrough; it links back to /pharmacy-pos elsewhere. */}
+      {(s.slug === 'pharmacy-pos' || s.slug === 'pharmacy-billing-software') ? <BarcodeSection tone="muted" cta={s.slug !== 'pharmacy-pos'} /> : null}
 
       <Section tone="muted">
         <Container narrow>
