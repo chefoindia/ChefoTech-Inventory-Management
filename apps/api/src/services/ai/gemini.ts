@@ -4,7 +4,10 @@ import { AiProviderError, type AiGenerateRequest, type AiGenerateResult, type Ai
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 /** Models that cannot answer a chat/tool request even though the key lists them. */
-const NOT_CHAT = /embedding|aqa|imagen|veo|image-generation|tts|audio|learnlm|gemma/i;
+const NOT_CHAT = /embedding|aqa|imagen|veo|image|tts|audio|transcribe|lyria|robotics|computer-use|nano-banana|deep-research|antigravity|learnlm|gemma/i;
+
+/** "…update your code to use models/gemini-3.6-flash…" — Google names the replacement itself. */
+const REPLACEMENT = /use\s+models\/([a-zA-Z0-9.\-_]+)/i;
 
 /** Google's own message, trimmed and stripped of anything key-shaped, for the operator's eyes. */
 function googleMessage(body: string): string {
@@ -32,9 +35,10 @@ export function pickClosestModel(requested: string, available: string[]): string
     if (/lite/i.test(m) === wantsLite) s += 30;
     if (/pro/i.test(m) === wantsPro) s += 25;
     if (/flash/i.test(m) && !wantsPro) s += 15;
+    // "…-latest" aliases are maintained by Google and never retired, so they are the safest default.
+    if (/latest/i.test(m)) s += 26;
     const version = Number.parseFloat(/(\d+\.\d+)/.exec(m)?.[1] ?? '0');
     s += Math.min(version, 9) * 6;
-    if (/latest/i.test(m)) s += 4;
     if (/(exp|preview|thinking|native|dialog)/i.test(m)) s -= 35;
     return s;
   };
@@ -78,6 +82,8 @@ export class GeminiProvider implements AiProvider {
   private models: string[] | null = null;
   /** Configured id → id that actually worked, so a fallback is resolved once per instance. */
   private readonly resolved = new Map<string, string>();
+  /** Ids this key lists but cannot actually call (retired for new users, wrong API version…). */
+  private readonly unusable = new Set<string>();
   constructor(private readonly apiKey: string) {}
 
   private async call(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -149,24 +155,29 @@ export class GeminiProvider implements AiProvider {
     let model = this.resolved.get(req.model) ?? req.model;
     let res = await send(model);
 
-    // Google retires and renames model ids, and different keys see different lists. When the
-    // configured id is not callable, fall back to the closest model this key actually offers
+    // Google renames models, retires them for new users and still lists them, so "it is in
+    // ListModels" is not proof that it can be called. On a 404 we take Google's own suggested
+    // replacement when it offers one, otherwise the closest model the key lists, and try again,
     // rather than telling a pharmacy with a perfectly good key that AI is unavailable.
-    if (res.status === 404) {
+    for (let hop = 0; res.status === 404 && hop < 3; hop += 1) {
       const body = await res.text();
+      const detail = googleMessage(body);
+      this.unusable.add(model);
       let available: string[] = [];
       try {
         available = await this.listModels();
       } catch {
         throw mapHttpError(404, body);
       }
-      const fallback = pickClosestModel(model, available);
-      if (!fallback || fallback === model) {
-        throw new AiProviderError('UNAVAILABLE', available.length ? `Gemini has no model called "${model}" for this key. Available models: ${available.slice(0, 6).join(', ')}. Pick one in Settings → AI & Gemini.` : mapHttpError(404, body).message);
+      const suggested = REPLACEMENT.exec(detail)?.[1];
+      const next = suggested && !this.unusable.has(suggested) ? suggested : pickClosestModel(req.model, available.filter((m) => !this.unusable.has(m)));
+      if (!next) {
+        logger.warn({ model, detail }, 'gemini has no usable model left for this key');
+        throw new AiProviderError('UNAVAILABLE', detail ? `Gemini refused every model this key offers. Google said: ${detail}` : `Gemini has no callable model for this key. Pick one in Settings → AI & Gemini.`);
       }
-      logger.warn({ requested: model, fallback, detail: googleMessage(body) }, 'gemini model unavailable for this key; falling back');
-      this.resolved.set(req.model, fallback);
-      model = fallback;
+      logger.warn({ from: model, to: next, detail }, 'gemini model unavailable; switching to another model this key offers');
+      model = next;
+      this.resolved.set(req.model, next);
       res = await send(model);
     }
 

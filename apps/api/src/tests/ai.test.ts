@@ -140,6 +140,45 @@ describe('AI: model availability', () => {
     expect(pickClosestModel('gemini-2.5-pro', available)).toBe('gemini-1.5-pro');
     // Never proposes a model that cannot answer a chat request.
     expect(pickClosestModel('gemini-2.5-flash', ['text-embedding-004'])).toBeUndefined();
+    expect(pickClosestModel('gemini-flash-latest', ['imagen-4.0', 'veo-3.0', 'gemini-2.5-flash-image'])).toBeUndefined();
+
+    // Google's maintained "-latest" aliases are preferred: they are never retired.
+    const modern = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-pro-latest'];
+    expect(pickClosestModel('gemini-9.9-flash', modern)).toBe('gemini-flash-latest');
+    expect(pickClosestModel('gemini-9.9-flash-lite', modern)).toBe('gemini-flash-lite-latest');
+    expect(pickClosestModel('gemini-9.9-pro', modern)).toBe('gemini-pro-latest');
+  });
+
+  it('moves off a model Google has retired, using the replacement Google names', async () => {
+    const urls: string[] = [];
+    const ok = { candidates: [{ content: { parts: [{ text: 'OK' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2 } };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      urls.push(url.replace(/key=[^&]+/, 'key=***'));
+      // The retired model is still listed by ListModels: being listed is not proof it can be called.
+      if (url.includes('/models?')) {
+        return new Response(JSON.stringify({ models: [
+          { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/gemini-3.6-flash', supportedGenerationMethods: ['generateContent'] },
+        ] }), { status: 200 });
+      }
+      if (url.includes('gemini-2.5-flash:generateContent')) {
+        return new Response(JSON.stringify({ error: { code: 404, message: 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the latest features and improvements.' } }), { status: 404 });
+      }
+      return new Response(JSON.stringify(ok), { status: 200 });
+    });
+
+    const provider = new GeminiProvider('AIzaSyEXAMPLEKEY1234567890ABCD');
+    const res = await provider.generate({ model: 'gemini-2.5-flash', system: 'test', messages: [{ role: 'user', parts: [{ text: 'hi' }] }] });
+    expect(res.text).toBe('OK');
+    expect(res.modelUsed).toBe('gemini-3.6-flash');
+    expect(urls.some((u) => u.includes('gemini-3.6-flash:generateContent'))).toBe(true);
+    expect(urls.every((u) => !u.includes('AIza'))).toBe(true);
+
+    // The substitution is remembered, so the retired model is not tried again.
+    const before = urls.length;
+    await provider.generate({ model: 'gemini-2.5-flash', system: 'test', messages: [{ role: 'user', parts: [{ text: 'again' }] }] });
+    expect(urls.slice(before).some((u) => u.includes('gemini-2.5-flash:generateContent'))).toBe(false);
   });
 
   it('stores the models the key reports and moves an unsupported configured model onto one that works', async () => {

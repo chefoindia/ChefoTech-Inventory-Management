@@ -33,8 +33,8 @@ export async function monthlyUsage(organizationId: Types.ObjectId) {
 function modelsFor(available: string[] | undefined, model?: string, liteModel?: string): Record<string, string> {
   if (!available?.length) return {};
   const out: Record<string, string> = {};
-  const main = pickClosestModel(model || 'gemini-2.5-flash', available);
-  const lite = pickClosestModel(liteModel || 'gemini-2.5-flash-lite', available);
+  const main = pickClosestModel(model || 'gemini-flash-latest', available);
+  const lite = pickClosestModel(liteModel || 'gemini-flash-lite-latest', available);
   if (main && main !== model) out.model = main;
   if (lite && lite !== liteModel) out.liteModel = lite;
   return out;
@@ -52,8 +52,8 @@ export async function toDto(doc: AiSettingsDoc): Promise<AiSettingsDto> {
     lastTestOk: doc.lastTestOk ?? null,
     lastTestMessage: doc.lastTestMessage ?? '',
     features: (doc.features ?? []) as AiFeature[],
-    model: doc.model ?? 'gemini-2.5-flash',
-    liteModel: doc.liteModel ?? 'gemini-2.5-flash-lite',
+    model: doc.model ?? 'gemini-flash-latest',
+    liteModel: doc.liteModel ?? 'gemini-flash-lite-latest',
     availableModels: doc.availableModels ?? [],
     temperature: doc.temperature ?? 0.2,
     maxOutputTokens: doc.maxOutputTokens ?? 2048,
@@ -62,6 +62,11 @@ export async function toDto(doc: AiSettingsDoc): Promise<AiSettingsDto> {
     language: (doc.language ?? 'auto') as AiSettingsDto['language'],
     usage: { ...usage, limitReached: limit > 0 && usage.inputTokens + usage.outputTokens >= limit },
   };
+}
+
+/** Persists a model the provider had to substitute, so later requests skip the failed one. */
+export async function rememberModel(organizationId: Types.ObjectId, field: 'model' | 'liteModel', value: string): Promise<void> {
+  await AiSettingsModel.updateOne({ organizationId }, { $set: { [field]: value } });
 }
 
 export async function getSettings(ctx: RequestContext): Promise<AiSettingsDto> {

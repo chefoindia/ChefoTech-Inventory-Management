@@ -8,7 +8,7 @@ import { attachmentUrl } from '@/services/cloudinary.service';
 import { AiProviderError, type AiMessage, type AiInlineFile } from '@/services/ai/provider';
 import { searchProducts } from '@/modules/catalog/products.service';
 import { listSuppliers } from '@/modules/parties/suppliers.service';
-import { resolveAi, recordUsage } from './ai-settings.service';
+import { resolveAi, recordUsage, rememberModel } from './ai-settings.service';
 import { toolsFor } from './tools';
 
 const MAX_TOOL_ROUNDS = 6;
@@ -102,7 +102,7 @@ export async function chat(ctx: RequestContext, input: AiChatInput): Promise<AiC
 
   const lastUser = input.messages[input.messages.length - 1]?.content ?? '';
   const simple = /^(what is this|what do i do here|how do i|explain|help|kya hai|kaise|samjhao)/i.test(lastUser) && !input.attachments.length;
-  const model = simple ? (settings.liteModel ?? 'gemini-2.5-flash-lite') : (settings.model ?? 'gemini-2.5-flash');
+  const model = simple ? (settings.liteModel ?? 'gemini-flash-lite-latest') : (settings.model ?? 'gemini-flash-latest');
   // The provider may substitute a model this key can actually call; record what answered.
   let modelUsed = model;
   const system = systemPrompt(ctx, input, settings.language ?? 'auto', features);
@@ -134,6 +134,7 @@ export async function chat(ctx: RequestContext, input: AiChatInput): Promise<AiC
       }
       history.push({ role: 'user', parts: responses });
     }
+    if (modelUsed !== model) await rememberModel(ctx.organizationId, simple ? 'liteModel' : 'model', modelUsed);
     await recordUsage(ctx, { feature: 'assistant', model: modelUsed, ...usage, durationMs: Date.now() - started, ok: true, toolsUsed });
     if (actions.some((a) => a.type !== 'navigate')) await audit(ctx, { action: 'ai.actionProposed', entityType: 'AiAssistant', summary: `Assistant proposed: ${actions.filter((a) => a.type !== 'navigate').map((a) => a.label).join('; ').slice(0, 300)}`, metadata: { toolsUsed } });
     // de-duplicate actions by label, keep order
@@ -200,7 +201,7 @@ export async function extractInvoice(ctx: RequestContext, attachment: Attachment
   const system = 'You read Indian pharmaceutical supplier invoices (GST tax invoices). Extract every product line exactly as printed. Do not guess: if a value is unreadable, return null and add a warning. Batch numbers are alphanumeric codes; expiry is usually MM/YY. Rates are per pack (strip/bottle). Return JSON only.';
   let res;
   try {
-    res = await provider.generate({ model: settings.model ?? 'gemini-2.5-flash', system, messages: [{ role: 'user', parts: [{ text: 'Extract this supplier invoice.' }, { file }] }], responseSchema: INVOICE_SCHEMA, temperature: 0, maxOutputTokens: 8192, timeoutMs: Math.max(settings.timeoutMs ?? 45_000, 60_000) });
+    res = await provider.generate({ model: settings.model ?? 'gemini-flash-latest', system, messages: [{ role: 'user', parts: [{ text: 'Extract this supplier invoice.' }, { file }] }], responseSchema: INVOICE_SCHEMA, temperature: 0, maxOutputTokens: 8192, timeoutMs: Math.max(settings.timeoutMs ?? 45_000, 60_000) });
   } catch (err) {
     await recordUsage(ctx, { feature: 'invoiceReading', model: settings.model ?? '', inputTokens: 0, outputTokens: 0, durationMs: Date.now() - started, ok: false, error: (err as Error).message.slice(0, 200) });
     throw err instanceof AiProviderError ? new BusinessRuleError(friendly(err)) : err;
@@ -261,7 +262,7 @@ export async function extractPrescription(ctx: RequestContext, attachment: Attac
   const system = 'You read handwritten and printed doctor prescriptions from India. List each medicine with dosage (e.g. 1-0-1) and duration as written. Handwriting is often unclear: mark uncertain names as low confidence and add a warning instead of guessing. Return JSON only.';
   let res;
   try {
-    res = await provider.generate({ model: settings.model ?? 'gemini-2.5-flash', system, messages: [{ role: 'user', parts: [{ text: 'Extract this prescription.' }, { file }] }], responseSchema: PRESCRIPTION_SCHEMA, temperature: 0, maxOutputTokens: 4096, timeoutMs: Math.max(settings.timeoutMs ?? 45_000, 60_000) });
+    res = await provider.generate({ model: settings.model ?? 'gemini-flash-latest', system, messages: [{ role: 'user', parts: [{ text: 'Extract this prescription.' }, { file }] }], responseSchema: PRESCRIPTION_SCHEMA, temperature: 0, maxOutputTokens: 4096, timeoutMs: Math.max(settings.timeoutMs ?? 45_000, 60_000) });
   } catch (err) {
     await recordUsage(ctx, { feature: 'invoiceReading', model: settings.model ?? '', inputTokens: 0, outputTokens: 0, durationMs: Date.now() - started, ok: false, error: (err as Error).message.slice(0, 200) });
     throw err instanceof AiProviderError ? new BusinessRuleError(friendly(err)) : err;

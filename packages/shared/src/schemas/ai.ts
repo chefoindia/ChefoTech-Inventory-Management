@@ -18,11 +18,11 @@ export const AI_FEATURE_LABELS: Record<AiFeature, { label: string; description: 
 };
 
 /** Suggested defaults. The real choice comes from the models the organization's own key lists. */
-export const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'] as const;
+export const AI_MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-pro-latest'] as const;
 export type AiModel = (typeof AI_MODELS)[number];
 
 /** Google renames and retires model ids, so any well-formed id the key supports is accepted. */
-export const aiModelIdSchema = z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/, 'Use a model id such as gemini-2.5-flash');
+export const aiModelIdSchema = z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/, 'Use a model id such as gemini-flash-latest');
 
 export const aiSettingsPatchSchema = z.object({
   enabled: z.boolean().optional(),
