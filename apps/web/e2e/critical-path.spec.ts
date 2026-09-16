@@ -42,7 +42,7 @@ async function seedProduct(api: APIRequestContext, t: Tenant) {
 async function login(page: Page, t: Tenant) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(t.email);
-  await page.getByLabel('Password').fill(t.password);
+  await page.getByLabel(/^Password/).fill(t.password);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 }

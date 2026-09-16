@@ -12,7 +12,7 @@ import { track } from '@/lib/analytics';
 import { GuestOnly } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
-import { Input } from '@/components/ui/input';
+import { Input, PasswordInput } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 
@@ -53,7 +53,7 @@ function LoginForm() {
             <Input type="email" autoComplete="email" autoFocus {...form.register('email')} />
           </FormField>
           <FormField label="Password" htmlFor="password" error={form.formState.errors.password?.message} required>
-            <Input type="password" autoComplete="current-password" {...form.register('password')} />
+            <PasswordInput autoComplete="current-password" {...form.register('password')} />
           </FormField>
           <Button type="submit" className="w-full" size="lg" loading={login.isPending}>
             Sign in

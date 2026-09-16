@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const inputClass =
@@ -10,6 +11,30 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className
   <input ref={ref} type={type} className={cn(inputClass, className)} {...props} />
 ));
 Input.displayName = 'Input';
+
+/**
+ * Password field with a show/hide toggle. The toggle only changes the input type in this browser;
+ * nothing is stored or sent. Keyboard reachable and labelled for screen readers.
+ */
+export const PasswordInput = React.forwardRef<HTMLInputElement, Omit<InputProps, 'type'>>(({ className, ...props }, ref) => {
+  const [visible, setVisible] = React.useState(false);
+  return (
+    <div className="relative">
+      <input ref={ref} type={visible ? 'text' : 'password'} className={cn(inputClass, 'pr-10', className)} {...props} />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-pressed={visible}
+        title={visible ? 'Hide password' : 'Show password'}
+        className="absolute right-px top-px flex h-[calc(2.25rem-2px)] w-10 items-center justify-center rounded-r-[var(--radius-control)] text-fg-subtle hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary-500"
+      >
+        {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+      </button>
+    </div>
+  );
+});
+PasswordInput.displayName = 'PasswordInput';
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
   ({ className, ...props }, ref) => (

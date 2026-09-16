@@ -11,7 +11,7 @@ import { applyServerErrors } from '@/lib/form-errors';
 import { formatDate } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
-import { Input } from '@/components/ui/input';
+import { Input, PasswordInput } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Spinner, ErrorState } from '@/components/ui/states';
@@ -69,7 +69,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 <Input defaultValue={inv.name} placeholder={inv.name} {...form.register('name')} />
               </FormField>
               <FormField label="Create a password" htmlFor="password" error={form.formState.errors.password?.message} required hint="At least 10 characters.">
-                <Input type="password" autoComplete="new-password" {...form.register('password', { required: 'Required', minLength: { value: 10, message: 'At least 10 characters' } })} />
+                <PasswordInput autoComplete="new-password" {...form.register('password', { required: 'Required', minLength: { value: 10, message: 'At least 10 characters' } })} />
               </FormField>
             </>
           ) : (

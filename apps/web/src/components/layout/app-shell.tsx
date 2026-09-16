@@ -186,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center justify-between border-b border-border px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
         <Link href="/dashboard" aria-label="PharmaOS home">
           <Logo />
         </Link>
@@ -209,7 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface lg:block">{sidebar}</aside>
+      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 self-start border-r border-border bg-surface lg:block">{sidebar}</aside>
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -221,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-[var(--radius-control)] focus:bg-primary-600 focus:px-3 focus:py-1.5 focus:text-sm focus:text-white">Skip to content</a>
         <ConnectionBanner />
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface/95 px-4 backdrop-blur">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
           <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
             <Menu className="h-4 w-4" />
           </Button>
@@ -230,8 +230,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <UserMenu />
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-5 outline-none sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-[1280px]">{children}</div>
+        <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8">
+          <div className="w-full">{children}</div>
         </main>
         <AiAssistant />
       </div>

@@ -14,7 +14,7 @@ import { useRef } from 'react';
 import { GuestOnly } from '@/components/layout/auth-guard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField, FormGrid } from '@/components/ui/form-field';
-import { Input } from '@/components/ui/input';
+import { Input, PasswordInput } from '@/components/ui/input';
 import { StateSelect } from '@/components/ui/state-select';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -74,7 +74,7 @@ export default function RegisterPage() {
               <Input type="email" autoComplete="email" {...form.register('email')} />
             </FormField>
             <FormField label="Password" htmlFor="password" error={errors.password?.message} required hint="At least 10 characters.">
-              <Input type="password" autoComplete="new-password" {...form.register('password')} />
+              <PasswordInput autoComplete="new-password" {...form.register('password')} />
             </FormField>
             <Button type="submit" className="w-full" size="lg" loading={register.isPending}>
               Create organization

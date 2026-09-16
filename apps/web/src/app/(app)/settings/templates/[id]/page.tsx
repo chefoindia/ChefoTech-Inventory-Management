@@ -54,7 +54,7 @@ export default function TemplateDesignerPage({ params }: { params: Promise<{ id:
   };
 
   return (
-    <div className="-mx-4 -my-5 flex min-h-[calc(100vh-56px)] flex-col sm:-mx-6 lg:-mx-8">
+    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6 lg:-mx-8">
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2">
         <Link href="/settings/templates" className={buttonVariants({ variant: 'ghost', size: 'sm' })}><ArrowLeft className="h-4 w-4" /></Link>
         <div className="min-w-0">

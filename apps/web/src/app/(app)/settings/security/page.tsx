@@ -16,7 +16,7 @@ import { formatDateTime, relativeTime } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { FormField, FormGrid } from '@/components/ui/form-field';
-import { Input } from '@/components/ui/input';
+import { Input, PasswordInput } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableSkeleton, ErrorState } from '@/components/ui/states';
@@ -97,10 +97,10 @@ function PasswordCard() {
         <CardContent>
           <FormGrid>
             <FormField label="Current password" htmlFor="currentPassword" error={errors.currentPassword?.message} required>
-              <Input type="password" autoComplete="current-password" {...form.register('currentPassword')} />
+              <PasswordInput autoComplete="current-password" {...form.register('currentPassword')} />
             </FormField>
             <FormField label="New password" htmlFor="newPassword" error={errors.newPassword?.message} required hint="At least 10 characters.">
-              <Input type="password" autoComplete="new-password" {...form.register('newPassword')} />
+              <PasswordInput autoComplete="new-password" {...form.register('newPassword')} />
             </FormField>
           </FormGrid>
         </CardContent>

@@ -53,9 +53,14 @@
   color-scheme: light;
 }
 
+/*
+  min-height, not height: a fixed 100% height squeezes flex children (the app shell) to exactly one
+  viewport, which leaves `position: sticky` elements inside it no room to stick. Full-height layouts
+  use `min-h-screen` / `h-screen` explicitly instead.
+*/
 html,
 body {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
