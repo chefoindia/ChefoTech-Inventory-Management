@@ -1,15 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Printer, Download, Mail, ExternalLink, History } from 'lucide-react';
+import { Printer, Download, Mail, ExternalLink, History, MessageCircle, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DocumentTemplateType } from '@pharmaos/shared';
-import { openDocument, useEmailDocument, useDocumentHistory, useTemplates } from '@/features/documents/api';
+import type { DocumentTemplateType, ShareLinkDto } from '@pharmaos/shared';
+import { openDocument, useEmailDocument, useDocumentHistory, useTemplates, useShareLink } from '@/features/documents/api';
 import { usePermission } from '@/features/auth/permissions';
 import { useSession } from '@/stores/session';
 import { errorMessage } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { Input, Textarea, Select } from '@/components/ui/input';
@@ -20,7 +20,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
  * Print / download / email buttons for a rendered document. Handles template choice when the
  * organization has more than one template for the type (plan permitting).
  */
-export function DocumentActions({ type, refId, refType, emailTo, emailPermission = 'sales.email', printPermission = 'sales.print', range, compact }: { type: DocumentTemplateType; refId: string; refType?: string; emailTo?: string; emailPermission?: string; printPermission?: string; range?: { from?: string; to?: string }; compact?: boolean }) {
+export function DocumentActions({ type, refId, refType, emailTo, emailPermission = 'sales.email', printPermission = 'sales.print', range, compact, sharePhone, shareLabel }: { type: DocumentTemplateType; refId: string; refType?: string; emailTo?: string; emailPermission?: string; printPermission?: string; range?: { from?: string; to?: string }; compact?: boolean; /** Customer/supplier phone for the WhatsApp deep link. */ sharePhone?: string; shareLabel?: string }) {
+  const share = useShareLink();
+  const [shareLink, setShareLink] = React.useState<ShareLinkDto | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [emailOpen, setEmailOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
@@ -62,11 +64,30 @@ export function DocumentActions({ type, refId, refType, emailTo, emailPermission
           <Mail className="h-3.5 w-3.5" /> Email
         </Button>
       ) : null}
+      {canPrint ? (
+        <Button variant="secondary" size="sm" loading={share.isPending} onClick={() => share.mutate({ type, refId, phone: sharePhone, label: shareLabel, from: range?.from, to: range?.to }, { onSuccess: (link) => setShareLink(link), onError: (err) => toast.error(errorMessage(err)) })}>
+          <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+        </Button>
+      ) : null}
       {refType ? (
         <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>
           <History className="h-3.5 w-3.5" /> History
         </Button>
       ) : null}
+      <Dialog open={!!shareLink} onOpenChange={(o) => !o && setShareLink(null)}>
+        <DialogContent title="Share on WhatsApp" description="A secure link to the PDF, valid for 7 days. The customer does not need an account." size="sm">
+          {shareLink ? (
+            <div className="space-y-3 text-sm">
+              <p className="rounded-[var(--radius-control)] border border-border bg-surface-subtle p-2 text-[13px] break-all">{shareLink.message}</p>
+              <p className="text-[12px] text-fg-subtle">Expires {formatDateTime(shareLink.expiresAt)}</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={shareLink.whatsappUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: 'sm' })}><MessageCircle className="h-3.5 w-3.5" /> Open WhatsApp</a>
+                <Button variant="secondary" size="sm" onClick={() => { void navigator.clipboard?.writeText(shareLink.url).then(() => toast.success('Link copied')); }}><Copy className="h-3.5 w-3.5" /> Copy link</Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <EmailDialog open={emailOpen} onOpenChange={setEmailOpen} type={type} refId={refId} defaultTo={emailTo} templateId={templateId} />
       {refType ? <HistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} refType={refType} refId={refId} /> : null}
     </div>

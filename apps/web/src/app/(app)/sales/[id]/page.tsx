@@ -66,7 +66,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
       {s.status === 'cancelled' ? <Alert variant="warning" className="mb-4" title={`Cancelled ${s.cancelledAt ? formatDateTime(s.cancelledAt) : ''} by ${s.cancelledBy?.name ?? '—'}`}>{s.cancelReason}</Alert> : null}
 
-      <div className="mb-4"><DocumentActions type="saleInvoice" refId={s.id} refType="Sale" emailTo={s.customer.email} /></div>
+      <div className="mb-4"><DocumentActions type="saleInvoice" refId={s.id} refType="Sale" emailTo={s.customer.email} sharePhone={s.customer.phone} shareLabel={`Invoice ${s.number}`} /></div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">

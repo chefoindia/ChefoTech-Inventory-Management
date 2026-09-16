@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TemplateDto, TemplateLayout, DocumentTemplateType, GeneratedDocumentDto, CreateTemplateInput, BindingGroup } from '@pharmaos/shared';
+import type { TemplateDto, TemplateLayout, DocumentTemplateType, GeneratedDocumentDto, CreateTemplateInput, BindingGroup, ShareLinkDto } from '@pharmaos/shared';
 
 type PageDimensionsMap = Record<string, { width: number; height: number; continuous?: boolean }>;
 import { api, API_URL, refreshAccessToken } from '@/lib/api-client';
@@ -107,4 +107,9 @@ export function useArchiveTemplate() {
 }
 export async function previewTemplate(type: DocumentTemplateType, layout: TemplateLayout, refId?: string): Promise<Blob> {
   return fetchPdfBlob(`/templates/preview/${type}`, { method: 'POST', body: { layout, refId } });
+}
+
+/** Signed public link for WhatsApp/SMS sharing (7 days). */
+export function useShareLink() {
+  return useMutation({ mutationFn: ({ type, refId, phone, label, from, to }: { type: DocumentTemplateType; refId: string; phone?: string; label?: string; from?: string; to?: string }) => api.post<ShareLinkDto>(`/documents/${type}/${refId}/share-link`, { phone, label, from, to }) });
 }

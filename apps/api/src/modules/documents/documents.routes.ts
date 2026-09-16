@@ -25,6 +25,7 @@ import { hasPermission } from '@/lib/context';
 import { ForbiddenError } from '@/lib/errors';
 import * as docs from './documents.service';
 import { BINDING_GROUPS, TABLE_COLUMN_CATALOGUE } from './data-providers';
+import { createShareLink, renderSharedDocument } from './share-links';
 
 const typeParam = z.object({ type: z.enum(DOCUMENT_TEMPLATE_TYPES) });
 const typeAndId = z.object({ type: z.enum(DOCUMENT_TEMPLATE_TYPES), refId: objectIdSchema });
@@ -119,4 +120,19 @@ documentsRouter.post('/:type/:refId/email', heavyRateLimit, validate({ params: t
   const p = params<{ type: DocumentTemplateType; refId: string }>(req);
   if (!hasPermission(ctx, RENDER_PERMISSION[p.type]) || (p.type.startsWith('sale') && !hasPermission(ctx, 'sales.email'))) throw new ForbiddenError();
   ok(res, await docs.emailDocument(ctx, p.type, p.refId, body<{ to?: string; message?: string; templateId?: string }>(req)));
+});
+
+/* ---------------------------------------------------------------- share links (WhatsApp / SMS) */
+documentsRouter.post('/:type/:refId/share-link', heavyRateLimit, validate({ params: typeAndId, body: z.object({ phone: z.string().trim().max(20).optional(), label: z.string().trim().max(80).optional(), from: z.coerce.date().optional(), to: z.coerce.date().optional() }) }), async (req, res) => {
+  const ctx = ctxOf(req);
+  const p = params<{ type: DocumentTemplateType; refId: string }>(req);
+  if (!hasPermission(ctx, RENDER_PERMISSION[p.type])) throw new ForbiddenError();
+  ok(res, await createShareLink(ctx, p.type, p.refId, body<{ phone?: string; label?: string; from?: Date; to?: Date }>(req)));
+});
+
+/** Unauthenticated: streams a PDF for a valid, unexpired share token. Mounted outside the API auth chain. */
+export const publicDocumentsRouter = Router();
+publicDocumentsRouter.get('/:token', heavyRateLimit, async (req, res) => {
+  const result = await renderSharedDocument(String(req.params.token), RENDER_PERMISSION);
+  sendPdf(res, result.buffer, result.fileName, false);
 });

@@ -64,7 +64,7 @@ export function Combobox<T = unknown>({ value, onChange, options, onSearch, load
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button id={id} type="button" disabled={disabled} autoFocus={autoFocus} className={cn(inputClass, 'items-center justify-between gap-2 text-left', !selected && 'text-fg-faint', className)} aria-haspopup="listbox" aria-expanded={open}>
+        <button id={id} type="button" disabled={disabled} autoFocus={autoFocus} className={cn(inputClass, 'items-center justify-between gap-2 text-left', !selected && 'text-fg-subtle', className)} aria-haspopup="listbox" aria-expanded={open}>
           <span className="truncate">{selected?.label ?? (value ? lastLabel : '') ?? placeholder ?? placeholder}{!selected && !value ? placeholder : null}</span>
           <span className="flex items-center gap-1">
             {clearable && value ? (

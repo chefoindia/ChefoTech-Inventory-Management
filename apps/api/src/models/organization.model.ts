@@ -77,6 +77,7 @@ const organizationSchema = new Schema(
       planKey: { type: String, default: 'trial' },
       status: { type: String, enum: ['trialing', 'active', 'past_due', 'cancelled'], default: 'trialing' },
       trialEndsAt: { type: Date, default: null },
+      currentPeriodEnd: { type: Date, default: null },
       limits: {
         outlets: { type: Number, default: 3 },
         users: { type: Number, default: 10 },

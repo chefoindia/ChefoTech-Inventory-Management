@@ -73,6 +73,10 @@ Legend: [ ] not started · [~] in progress · [x] done (with tests)
 - [x] Browser-level Playwright tests (`apps/web/e2e`, `pnpm --filter @pharmaos/web test:e2e`) for the POS sale and purchase/receive flows against the running dev servers
 - [x] Gap closure from the spec audit: organization logo and user avatar upload, outlet business hours (also a template binding), connection-status banner with API health ping, POS draft preserved in the browser across refreshes/offline, one automatic retry for GET requests, whole-organization JSON export for business continuity, customer statement email as a payment reminder, login-activity panel, skip-to-content link
 - [x] Index review: every list/aggregate query pattern has a matching compound index (see `apps/api/src/models/*.model.ts`)
-- [ ] Full accessibility audit with a screen reader and a third-party security assessment before public launch
-- [ ] Payment gateway integration for plan billing (plans/entitlements/usage are enforced; collection happens off-platform)
-- [ ] SMS / WhatsApp / push delivery providers (channels are modelled and recorded; only in-app and email deliver today)
+- [x] Plan billing through Razorpay: server-side order creation, checkout in the browser, HMAC signature verification, webhook fallback with raw-body signature check, subscription invoices with paid periods, `Paid through` on the subscription page. Without keys the owner's manual plan change remains, clearly labelled.
+- [x] SMS (MSG91 or Twilio) and WhatsApp (Meta Cloud API) delivery providers behind the messaging service, wired into notification fan-out; console providers record messages in tests
+- [x] Web push: VAPID service, per-device subscriptions, service worker (`apps/web/public/sw.js`), enable/disable card in notification settings
+- [x] WhatsApp-ready invoice sharing: signed 7-day public links (`/share/:token`) minted only for records the caller's organization owns, `wa.me` deep link with the customer's number, public viewer page
+- [x] Automated WCAG 2.1 AA scan with axe-core over the eight busiest screens (`apps/web/e2e/accessibility.spec.ts`); the contrast and select-name findings it raised are fixed
+- [x] Dependency audit clean (`pnpm audit --prod`; `uuid` pinned via a pnpm override); security checklist in `docs/SECURITY.md`
+- [ ] Before public launch: third-party penetration test, manual screen-reader pass, and provider account setup (Razorpay KYC, DLT-registered SMS templates, WhatsApp Business verification)

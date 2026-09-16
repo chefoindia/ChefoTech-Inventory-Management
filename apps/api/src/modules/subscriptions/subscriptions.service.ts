@@ -11,6 +11,7 @@ import { orgFilter, trustedFilter } from '@/lib/scoped';
 import { BusinessRuleError, NotFoundError, PlanLimitError } from '@/lib/errors';
 import { audit } from '@/services/audit.service';
 import { PLANS, planFor } from './plans';
+import { billingStatus } from './billing.service';
 
 /** Live status: trial that has ended is treated as past_due (read-only prompts in the UI, limits still enforced). */
 export function effectiveStatus(org: Pick<OrganizationDoc, 'subscription'>): SubscriptionDto['status'] {
@@ -41,11 +42,12 @@ export async function getSubscription(ctx: RequestContext): Promise<Subscription
     plan,
     status: effectiveStatus(org),
     trialEndsAt: org.subscription?.trialEndsAt ? org.subscription.trialEndsAt.toISOString() : null,
-    currentPeriodEnd: null,
+    currentPeriodEnd: org.subscription?.currentPeriodEnd ? new Date(org.subscription.currentPeriodEnd).toISOString() : null,
     usage: await usage(ctx.organizationId),
     limits: { ...plan.limits, ...(org.subscription?.limits ?? {}) },
     features: plan.features,
     history: (org.subscriptionHistory ?? []).map((h) => ({ at: h.at ? new Date(h.at).toISOString() : '', from: h.from ?? '', to: h.to ?? '', by: h.by ?? '' })),
+    billing: billingStatus(),
   };
 }
 
@@ -65,7 +67,7 @@ export async function changePlan(ctx: RequestContext, planKey: PlanKey) {
   if (use.products > plan.limits.products) over.push(`${use.products} products (limit ${plan.limits.products})`);
   if (over.length) throw new PlanLimitError(`Current usage exceeds the ${plan.name} plan: ${over.join(', ')}. Archive some records or pick a larger plan.`);
   const from = org.subscription?.planKey ?? 'trial';
-  org.set('subscription', { planKey, status: 'active', trialEndsAt: null, limits: plan.limits });
+  org.set('subscription', { planKey, status: 'active', trialEndsAt: null, currentPeriodEnd: null, limits: plan.limits });
   org.set('subscriptionHistory', [...((org.get('subscriptionHistory') as unknown[] | undefined) ?? []), { at: new Date(), from, to: planKey, by: String(ctx.userId) }]);
   await org.save();
   await audit(ctx, { action: 'subscription.planChanged', entityType: 'Organization', entityId: org._id, summary: `Changed plan from ${from} to ${planKey}`, before: { planKey: from }, after: { planKey } });

@@ -11,6 +11,8 @@ import { pageMeta } from '@/lib/pagination';
 import { NotFoundError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { sendEmail } from '@/services/email/email.service';
+import { sendSms, sendWhatsApp } from '@/services/messaging/messaging.service';
+import { sendPushToUser, pushConfigured } from '@/services/push/push.service';
 import { audit } from '@/services/audit.service';
 import { isoNow } from '@/modules/common/refs';
 
@@ -19,7 +21,7 @@ import { isoNow } from '@/modules/common/refs';
 export interface NotificationChannelAdapter {
   readonly channel: string;
   /** Deliver to a concrete recipient; adapters must never throw. */
-  deliver(notification: NotificationDoc, recipient: { email: string; phone: string; name: string }): Promise<{ status: 'sent' | 'failed' | 'skipped'; error?: string }>;
+  deliver(notification: NotificationDoc, recipient: { email: string; phone: string; name: string; userId?: Types.ObjectId }): Promise<{ status: 'sent' | 'failed' | 'skipped'; error?: string }>;
 }
 
 const emailChannel: NotificationChannelAdapter = {
@@ -35,10 +37,34 @@ const emailChannel: NotificationChannelAdapter = {
   },
 };
 
-/** SMS / WhatsApp / push are architected as adapters; until a provider is configured they report `skipped`. */
-const placeholderChannel = (channel: string): NotificationChannelAdapter => ({ channel, async deliver() { return { status: 'skipped', error: `${channel} provider not configured` }; } });
+const textChannel = (channel: 'sms' | 'whatsapp', send: (m: { to: string; text: string; tags?: string[] }) => Promise<unknown>): NotificationChannelAdapter => ({
+  channel,
+  async deliver(n, r) {
+    if (!r.phone) return { status: 'skipped', error: 'recipient has no phone number' };
+    try {
+      await send({ to: r.phone, text: `PharmaOS: ${n.title}\n${n.body}`, tags: ['notification', n.type] });
+      return { status: 'sent' };
+    } catch (err) {
+      return { status: 'failed', error: (err as Error).message.slice(0, 200) };
+    }
+  },
+});
 
-const CHANNELS: Record<string, NotificationChannelAdapter> = { email: emailChannel, sms: placeholderChannel('sms'), whatsapp: placeholderChannel('whatsapp'), push: placeholderChannel('push') };
+const pushChannel: NotificationChannelAdapter = {
+  channel: 'push',
+  async deliver(n, r) {
+    if (!pushConfigured()) return { status: 'skipped', error: 'push (VAPID) not configured' };
+    if (!r.userId) return { status: 'skipped', error: 'no user to target' };
+    try {
+      const res = await sendPushToUser(r.userId, { title: n.title, body: n.body, url: n.href ?? undefined, tag: n.type });
+      return res.sent > 0 ? { status: 'sent' } : { status: 'skipped', error: 'no push subscriptions for this user' };
+    } catch (err) {
+      return { status: 'failed', error: (err as Error).message.slice(0, 200) };
+    }
+  },
+};
+
+const CHANNELS: Record<string, NotificationChannelAdapter> = { email: emailChannel, sms: textChannel('sms', sendSms), whatsapp: textChannel('whatsapp', sendWhatsApp), push: pushChannel };
 
 /* ---------------------------------------------------------------- rules */
 

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/states';
 import { Alert } from '@/components/ui/alert';
+import { PushToggleCard } from '@/features/notifications/push-toggle';
 
 const CHANNEL_LABELS: Record<NotificationChannel, string> = { inApp: 'In-app', email: 'Email', sms: 'SMS', whatsapp: 'WhatsApp', push: 'Push' };
 
@@ -28,6 +29,7 @@ export default function NotificationSettingsPage() {
       <div className="space-y-5">
         {canManage ? <RulesCard /> : null}
         <PreferencesCard />
+        <PushToggleCard />
       </div>
     </>
   );
@@ -44,7 +46,7 @@ function RulesCard() {
   const emailAllowed = features?.planKey !== 'starter';
   return (
     <Card>
-      <CardHeader><CardTitle>Rules</CardTitle><CardDescription>Empty roles means everyone whose role has the relevant permission. Email requires a plan with email notifications; SMS/WhatsApp/push are recorded for future providers.</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Rules</CardTitle><CardDescription>Empty roles means everyone whose role has the relevant permission. Email requires a plan with email notifications. SMS, WhatsApp and push deliver when the matching provider keys (MSG91/Twilio, WhatsApp Cloud API, VAPID) are configured on the server; otherwise deliveries are logged and marked skipped.</CardDescription></CardHeader>
       {rules.isPending ? <TableSkeleton rows={8} cols={4} /> : (
         <Table>
           <THead><TR><TH>Event</TH><TH>On</TH><TH>Channels</TH><TH>Threshold</TH><TH>Roles</TH></TR></THead>
@@ -89,7 +91,7 @@ function PreferencesCard() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {NOTIFICATION_TYPES.map((t) => <label key={t} className="flex items-center gap-2 text-sm"><Checkbox checked={muted.includes(t)} onChange={(e) => setMuted((m) => (e.target.checked ? [...m, t] : m.filter((x) => x !== t)))} /> Mute {NOTIFICATION_CATALOGUE[t].label}</label>)}
         </div>
-        <div className="flex items-center gap-3 text-sm"><span>Email digest</span><Select className="h-8 w-40" value={digest} onChange={(e) => setDigest(e.target.value as typeof digest)}><option value="none">Off</option><option value="daily">Daily summary</option></Select></div>
+        <div className="flex items-center gap-3 text-sm"><span>Email digest</span><Select className="h-8 w-40" aria-label="Email digest" value={digest} onChange={(e) => setDigest(e.target.value as typeof digest)}><option value="none">Off</option><option value="daily">Daily summary</option></Select></div>
       </CardContent>
       <CardFooter><Button variant="secondary" loading={save.isPending} onClick={() => save.mutate({ mutedTypes: muted, emailDigest: digest }, { onSuccess: () => toast.success('Preferences saved'), onError: (e) => toast.error(errorMessage(e)) })}><Save className="h-4 w-4" /> Save preferences</Button></CardFooter>
     </Card>

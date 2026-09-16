@@ -253,6 +253,80 @@ export interface SubscriptionDto {
   limits: PlanDto['limits'];
   features: FeatureKey[];
   history: { at: string; from: string; to: string; by: string }[];
+  billing: BillingStatusDto;
 }
 
 export const changePlanSchema = z.object({ planKey: z.enum(PLAN_KEYS) });
+
+/* ---------------------------------------------------------------- billing (plan checkout) */
+
+export const createCheckoutSchema = z.object({
+  planKey: z.enum(PLAN_KEYS.filter((k) => k !== 'trial') as [PlanKey, ...PlanKey[]]),
+  /** Billing period purchased in one go; annual gets 2 months free. */
+  months: z.union([z.literal(1), z.literal(12)]).default(1),
+});
+export type CreateCheckoutInput = z.infer<typeof createCheckoutSchema>;
+
+export const confirmCheckoutSchema = z.object({
+  orderId: z.string().min(1).max(100),
+  paymentId: z.string().min(1).max(100),
+  signature: z.string().min(1).max(200),
+});
+export type ConfirmCheckoutInput = z.infer<typeof confirmCheckoutSchema>;
+
+export interface CheckoutDto {
+  invoiceId: string;
+  orderId: string;
+  keyId: string;
+  amountMinor: number;
+  currency: string;
+  planKey: PlanKey;
+  months: number;
+  description: string;
+  prefill: { name: string; email: string; contact: string };
+}
+
+export interface SubscriptionInvoiceDto {
+  id: string;
+  number: string;
+  planKey: PlanKey;
+  months: number;
+  amountMinor: number;
+  currency: string;
+  status: 'created' | 'paid' | 'failed';
+  provider: string;
+  providerPaymentId: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  paidAt: string | null;
+  failureReason: string;
+  createdAt: string;
+}
+
+export interface BillingStatusDto {
+  /** 'razorpay' when checkout is available; 'none' means plan changes are recorded manually by the owner. */
+  provider: 'razorpay' | 'none';
+  keyId: string;
+  /** Delivery providers available for notification channels. */
+  channels: { sms: string; whatsapp: string; push: boolean; email: string };
+}
+
+/* ---------------------------------------------------------------- web push */
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(2000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+  userAgent: z.string().max(300).optional().default(''),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+/* ---------------------------------------------------------------- document share links */
+
+export interface ShareLinkDto {
+  /** Public URL that streams the PDF without authentication until `expiresAt`. */
+  url: string;
+  expiresAt: string;
+  /** Ready-to-open WhatsApp link (wa.me) with a message and the share URL; phone may be empty. */
+  whatsappUrl: string;
+  message: string;
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationDto, NotificationRuleDto, NotificationRuleInput } from '@pharmaos/shared';
+import type { NotificationDto, NotificationRuleDto, NotificationRuleInput, PushSubscriptionInput } from '@pharmaos/shared';
 import { api } from '@/lib/api-client';
 import { useSession } from '@/stores/session';
 
@@ -46,4 +46,15 @@ export function useUpdateNotificationPreferences() {
 export function useRunScans() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: () => api.post<Record<string, number>>('/notifications/scan'), onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }) });
+}
+
+/* ---------------------------------------------------------------- web push */
+export function usePushPublicKey() {
+  return useQuery({ queryKey: ['notifications', 'push-key'], queryFn: () => api.get<{ publicKey: string }>('/notifications/push/public-key'), staleTime: Infinity });
+}
+export function useSubscribePush() {
+  return useMutation({ mutationFn: (input: PushSubscriptionInput) => api.post('/notifications/push/subscriptions', input) });
+}
+export function useUnsubscribePush() {
+  return useMutation({ mutationFn: (endpoint: string) => api.delete('/notifications/push/subscriptions', { body: { endpoint } }) });
 }

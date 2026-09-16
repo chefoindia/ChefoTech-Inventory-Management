@@ -50,3 +50,24 @@
 
 ## Threat checklist (reviewed each phase)
 IDOR · privilege escalation via role edit · outlet hopping · expired-token replay · refresh reuse · brute force · mass assignment · operator injection · unsafe file types · public private docs · PDF SSRF via template images · CSV formula injection on export (cells starting with `= + - @` are prefixed) · timing leaks on login · enumeration on register/forgot-password (uniform responses).
+
+## Phase 10 security review (2026-09-16)
+
+Checked against the master spec's security section; each item names where it is enforced.
+
+- Authentication: scrypt password hashing, short-lived access JWT + rotating refresh cookie (`httpOnly`, `sameSite`, `secure` in production), session revocation (`apps/api/src/modules/auth`).
+- Tenant isolation: every org-owned query goes through `orgFilter`/`outletFilter`; `sanitizeFilter` is global with `trustedFilter` for server-built operators; covered by `tenant-isolation.test.ts` and the share-link ownership test in `phase10.test.ts`.
+- Authorization: `requirePermission` on every route; owner bypass; non-owners cannot grant permissions they lack (`rbac.test.ts`).
+- Input validation: zod on params/query/body for every route; custom-field values validated against their definitions; CSV imports validated row by row before commit.
+- Rate limiting: global limiter plus `heavyRateLimit` on PDF, export, email and share-link endpoints; auth endpoints have their own limiter.
+- Headers: helmet (`middleware/security.ts`); CORS restricted to `WEB_ORIGIN`.
+- Payments: Razorpay orders are created server-side; checkout success is verified with HMAC-SHA256 over `order_id|payment_id`; webhooks are verified over the raw body with a constant-time compare; plan activation is idempotent per invoice.
+- Public links: share tokens are signed JWTs carrying only a document reference, expire in 7 days, can only be minted for records the caller's organization owns, and render through the same tenant-scoped data providers.
+- Uploads: signed Cloudinary uploads with purpose-specific folders, formats and size limits; private resources (prescriptions, documents) are served through short-lived signed URLs, never public links.
+- Idempotency: required on every financial/stock POST; keys are per organization and released on failure so a corrected retry is not rejected.
+- Secrets: only environment variables (`apps/api/.env`, git-ignored); `.env.example` documents every key; no credentials in source.
+- Error handling: a central handler maps known errors to safe messages and codes; stack traces never reach clients.
+- Dependencies: `pnpm audit --prod` reports no known vulnerabilities (transitive `uuid` pinned to >=11.1.1 via a pnpm override).
+- Audit trail: logins, failed logins, permission changes, plan changes, checkouts, document emails and share links are all recorded.
+
+Open before public launch: rotate every credential that was ever pasted into chat, run a third-party penetration test, and turn on Atlas backups with point-in-time restore.

@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { notificationListQuerySchema, notificationRulesUpdateSchema, idParamSchema, NOTIFICATION_TYPES, type NotificationRuleInput, type PaginationQuery } from '@pharmaos/shared';
+import { notificationListQuerySchema, notificationRulesUpdateSchema, idParamSchema, NOTIFICATION_TYPES, pushSubscriptionSchema, type NotificationRuleInput, type PaginationQuery, type PushSubscriptionInput } from '@pharmaos/shared';
+import { env } from '@/config/env';
+import * as push from '@/services/push/push.service';
+import { pushConfigured } from '@/services/push/push.service';
 import { validate, body, params, query } from '@/middleware/validate';
 import { authenticate, ctxOf } from '@/middleware/authenticate';
 import { resolveOutlet } from '@/middleware/tenant';
@@ -44,4 +47,18 @@ notificationsRouter.put('/rules', requirePermission('notifications.manage'), val
 /** Run the periodic scans now (owner/admin) — useful after imports or for testing rules. */
 notificationsRouter.post('/scan', requirePermission('notifications.manage'), async (req, res) => {
   ok(res, await runAllScans(ctxOf(req).organizationId));
+});
+
+/* ---------------------------------------------------------------- web push */
+notificationsRouter.get('/push/public-key', requirePermission('notifications.view'), (_req, res) => {
+  ok(res, { publicKey: pushConfigured() ? env.VAPID_PUBLIC_KEY : '' });
+});
+notificationsRouter.post('/push/subscriptions', requirePermission('notifications.view'), validate({ body: pushSubscriptionSchema }), async (req, res) => {
+  const ctx = ctxOf(req);
+  await push.subscribe(ctx.organizationId, ctx.userId, body<PushSubscriptionInput>(req));
+  noContent(res);
+});
+notificationsRouter.delete('/push/subscriptions', requirePermission('notifications.view'), validate({ body: z.object({ endpoint: z.string().url().max(2000) }) }), async (req, res) => {
+  await push.unsubscribe(ctxOf(req).userId, body<{ endpoint: string }>(req).endpoint);
+  noContent(res);
 });

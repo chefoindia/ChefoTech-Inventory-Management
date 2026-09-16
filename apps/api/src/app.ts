@@ -25,7 +25,7 @@ import { salesRouter, salesReturnsRouter } from '@/modules/sales/sales.routes';
 import { prescriptionsRouter } from '@/modules/prescriptions/prescriptions.routes';
 import { importsRouter } from '@/modules/imports/import.routes';
 import { exportsRouter } from '@/modules/exports/export.routes';
-import { templatesRouter, documentsRouter } from '@/modules/documents/documents.routes';
+import { templatesRouter, documentsRouter, publicDocumentsRouter } from '@/modules/documents/documents.routes';
 import { registerDocumentEventHandlers } from '@/modules/documents/document-events';
 import { notificationsRouter } from '@/modules/notifications/notifications.routes';
 import { registerNotificationEventHandlers } from '@/modules/notifications/notification-jobs';
@@ -54,7 +54,7 @@ export function createApp(): Express {
   app.use(httpLogger);
   app.use(securityHeaders);
   app.use(corsPolicy);
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as unknown as { rawBody?: Buffer }).rawBody = Buffer.from(buf); } }));
   app.use(cookieParser());
   app.use(sanitizeRequest);
   app.use(globalRateLimit);
@@ -99,6 +99,8 @@ export function createApp(): Express {
   api.use('/reports', reportsRouter);
   api.use('/dashboard', dashboardRouter);
   api.use('/subscription', subscriptionRouter);
+  // Public, unauthenticated document links (signed tokens) live outside the API auth chain.
+  app.use('/share', publicDocumentsRouter);
   app.use(env.API_BASE_PATH, api);
 
   app.use(notFoundHandler);

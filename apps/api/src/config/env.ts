@@ -23,6 +23,26 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
   FIREBASE_SERVICE_ACCOUNT_BASE64: z.string().optional().default(''),
+  /** Plan billing (Razorpay). Leave empty to keep plan changes offline/manual. */
+  RAZORPAY_KEY_ID: z.string().optional().default(''),
+  RAZORPAY_KEY_SECRET: z.string().optional().default(''),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(''),
+  /** SMS: MSG91 (India) or Twilio. Leave empty to log to console. */
+  MSG91_AUTH_KEY: z.string().optional().default(''),
+  MSG91_SENDER_ID: z.string().optional().default(''),
+  MSG91_TEMPLATE_ID: z.string().optional().default(''),
+  TWILIO_ACCOUNT_SID: z.string().optional().default(''),
+  TWILIO_AUTH_TOKEN: z.string().optional().default(''),
+  TWILIO_FROM_NUMBER: z.string().optional().default(''),
+  /** WhatsApp Business (Meta Cloud API). Leave empty to log to console. */
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().default(''),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(''),
+  /** Web push (VAPID). Generate once with `npx web-push generate-vapid-keys`. */
+  VAPID_PUBLIC_KEY: z.string().optional().default(''),
+  VAPID_PRIVATE_KEY: z.string().optional().default(''),
+  VAPID_SUBJECT: z.string().optional().default('mailto:support@localhost'),
+  /** Signing secret for public document share links (defaults to the JWT secret). */
+  SHARE_LINK_SECRET: z.string().optional().default(''),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
 });
 

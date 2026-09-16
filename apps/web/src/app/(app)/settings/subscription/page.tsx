@@ -17,6 +17,7 @@ import { Spinner, ErrorState } from '@/components/ui/states';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { PlanCheckoutButton, SubscriptionInvoicesCard } from '@/features/subscription/checkout';
 
 const FEATURE_LABELS: Record<FeatureKey, string> = { multiOutlet: 'Multiple outlets', stockTransfers: 'Stock transfers', customRoles: 'Custom roles', customFields: 'Custom fields', templateDesigner: 'Document designer', emailInvoices: 'Email invoices', importExport: 'Import & export', advancedReports: 'Advanced reports', auditLog: 'Audit log', apiAccess: 'API access', prescriptions: 'Prescriptions', notificationsEmail: 'Email notifications' };
 
@@ -54,7 +55,7 @@ export default function SubscriptionPage() {
             <Usage label="Products" used={s.usage.products} limit={s.limits.products} />
             <Usage label="Invoices this month" used={s.usage.invoicesThisMonth} limit={s.limits.invoicesPerMonth} />
             <Usage label="Storage (MB)" used={s.usage.storageMb} limit={s.limits.storageMb} />
-            <div className="text-[13px] text-fg-subtle">{s.currentPeriodEnd ? `Current period ends ${formatDate(s.currentPeriodEnd)}` : ''}</div>
+            <div className="text-[13px] text-fg-subtle">{s.currentPeriodEnd ? `Paid through ${formatDate(s.currentPeriodEnd)}` : s.status === 'active' ? 'No paid period recorded (manual plan)' : ''}</div>
           </CardContent>
         </Card>
         <Card>
@@ -67,6 +68,7 @@ export default function SubscriptionPage() {
         </Card>
       </div>
 
+      {canManage && s.billing.provider === 'none' ? <Alert variant="info" className="mt-6" title="Online payment not connected">Plan changes are recorded immediately and audited; payment is collected off-platform. Add Razorpay keys to the API environment to take card/UPI payments here.</Alert> : null}
       <h2 className="mb-3 mt-8 text-[15px] font-semibold">Plans</h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {(plans.data ?? []).filter((p) => p.key !== 'trial').map((p) => {
@@ -85,11 +87,12 @@ export default function SubscriptionPage() {
                 </ul>
                 <ul className="space-y-0.5 text-[12px] text-fg-subtle">{p.features.map((f) => <li key={f} className="flex items-center gap-1"><Check className="h-3 w-3 text-success-600" /> {FEATURE_LABELS[f]}</li>)}</ul>
               </CardContent>
-              <CardFooter>{canManage ? <Button variant={current ? 'secondary' : 'primary'} size="sm" disabled={current || p.priceMinorPerMonth === null} onClick={() => setTarget(p)} className="w-full">{current ? 'Current plan' : p.priceMinorPerMonth === null ? 'Contact sales' : 'Switch to this plan'}</Button> : <span className="text-[12px] text-fg-subtle">Only owners can change the plan.</span>}</CardFooter>
+              <CardFooter>{!canManage ? <span className="text-[12px] text-fg-subtle">Only owners can change the plan.</span> : s.billing.provider === 'razorpay' ? <PlanCheckoutButton plan={p} current={current} /> : <Button variant={current ? 'secondary' : 'primary'} size="sm" disabled={current || p.priceMinorPerMonth === null} onClick={() => setTarget(p)} className="w-full">{current ? 'Current plan' : p.priceMinorPerMonth === null ? 'Contact sales' : 'Switch to this plan'}</Button>}</CardFooter>
             </Card>
           );
         })}
       </div>
+      <SubscriptionInvoicesCard />
       <ConfirmDialog open={!!target} onOpenChange={(o) => !o && setTarget(null)} title={`Switch to ${target?.name}?`} description="Limits apply immediately. Payment collection is handled outside this screen; the plan change is recorded in the audit log." confirmLabel="Switch plan" loading={change.isPending} onConfirm={() => { if (!target) return; change.mutate(target.key, { onSuccess: () => { toast.success(`Now on ${target.name}`); setTarget(null); }, onError: (e) => toast.error(errorMessage(e)) }); }} />
     </>
   );
