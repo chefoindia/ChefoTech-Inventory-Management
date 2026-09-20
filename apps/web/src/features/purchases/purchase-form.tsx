@@ -55,7 +55,7 @@ function fromDto(p: PurchaseDto): LineDraft[] {
 const GST_RATES = [0, 500, 1200, 1800, 2800];
 
 /** Purchase invoice entry. Totals are computed client-side with the shared tax engine and verified server-side. */
-export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: PurchaseDto | null; onSaved: (p: PurchaseDto) => void; onCancel: () => void }) {
+export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: PurchaseDto | null; onSaved: (p: PurchaseDto, receiveNext?: boolean) => void; onCancel: () => void }) {
   const me = useSession((s) => s.me)!;
   const outletId = useSession((s) => s.activeOutletId);
   const outlet = me.outlets.find((o) => o.id === outletId);
@@ -166,7 +166,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
   const totals: DocumentTotals | null = computed?.totals ?? null;
   const paid = payments.reduce((s, p) => s + (p.amountMinor ?? 0), 0);
 
-  const submit = (receiveNowOverride?: boolean) => {
+  const submit = (receiveNowOverride?: boolean, thenReceive = false) => {
     const receiving = receiveNowOverride ?? receiveNow;
     const input = {
       supplierId: supplierId ?? '',
@@ -200,9 +200,9 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
     if (purchase) {
       const { receiveNow: _receiveNow, payments: _payments, ...rest } = parsed.data;
       void _receiveNow; void _payments;
-      update.mutate({ id: purchase.id, input: rest }, { onSuccess: (p) => { toast.success('Purchase updated'); onSaved(p); }, onError: fail });
+      update.mutate({ id: purchase.id, input: rest }, { onSuccess: (p) => { toast.success('Purchase updated'); onSaved(p, false); }, onError: fail });
     } else {
-      create.mutate({ input: parsed.data as CreatePurchaseInput, idempotencyKey: idem }, { onSuccess: (p) => { toast.success(`Purchase ${p.number} saved${p.status === 'received' ? ' and stock received' : ''}`); onSaved(p); }, onError: fail });
+      create.mutate({ input: parsed.data as CreatePurchaseInput, idempotencyKey: idem }, { onSuccess: (p) => { toast.success(`Purchase ${p.number} saved${p.status === 'received' ? ' and stock received' : ''}`); onSaved(p, thenReceive); }, onError: fail });
     }
   };
 
@@ -302,8 +302,8 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
             <Button loading={pending && !receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(false); submit(); }}><Save className="h-4 w-4" /> {purchase ? 'Save changes' : 'Save purchase'}</Button>
             {!purchase && canReceive ? (
               <>
-                <Button variant="secondary" loading={pending && receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(true); submit(true); }}><PackageCheck className="h-4 w-4" /> Save &amp; receive everything</Button>
-                <p className="text-[12px] text-fg-subtle">Saving only records the supplier bill — stock stays out until you receive it. Receive later from the purchase to scan the pack barcodes.</p>
+                <Button variant="secondary" loading={pending && receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(true); submit(false, true); }}><PackageCheck className="h-4 w-4" /> Save &amp; receive now…</Button>
+                <p className="text-[12px] text-fg-subtle">Saving only records the supplier bill; stock stays out until you receive it. Receiving opens the goods receipt, where you scan a barcode label for each pack that arrived.</p>
               </>
             ) : null}
             <Button variant="secondary" onClick={onCancel} disabled={pending}>Cancel</Button>

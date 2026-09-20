@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import React, { Suspense, use, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { PackageCheck, Wallet, Undo2, Ban, Pencil } from 'lucide-react';
 import type { PurchaseDto } from '@pharmaos/shared';
@@ -35,6 +35,14 @@ import { Alert } from '@/components/ui/alert';
 
 export default function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  return (
+    <Suspense fallback={<Spinner />}>
+      <PurchaseDetail id={id} />
+    </Suspense>
+  );
+}
+
+function PurchaseDetail({ id }: { id: string }) {
   const router = useRouter();
   const purchase = usePurchase(id);
   const grns = useGrns({ page: 1, purchaseId: id });
@@ -45,7 +53,8 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
   const canCancel = usePermission('purchases.cancel');
   const canEdit = usePermission('purchases.edit');
   const canCost = usePermission('products.viewCost');
-  const [grnOpen, setGrnOpen] = useState(false);
+  const search = useSearchParams();
+  const [grnOpen, setGrnOpen] = useState(search.get('receive') === '1');
   const [payOpen, setPayOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -221,8 +230,10 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
                 const r = rows[l.lineId];
                 if (!r) return null;
                 const set = (patch: Partial<typeof r>) => setRows((x) => ({ ...x, [l.lineId]: { ...r, ...patch } }));
+                const packs = (r.receivedQty || 0) + (r.freeQty || 0);
                 return (
-                  <tr key={l.lineId}>
+                  <React.Fragment key={l.lineId}>
+                  <tr>
                     <td className="py-1.5 pr-2"><div className="font-medium">{l.productName}</div><div className="text-[11px] text-fg-subtle">{l.unitName} · ordered {l.qty}{l.freeQty ? ` + ${l.freeQty} free` : ''}</div></td>
                     <td className="py-1.5 pr-2 text-right tabular">{(l.qtyBase - l.receivedBase - l.damagedBase) / l.factorToBase}</td>
                     <td className="py-1.5 pr-2"><Input type="number" min={0} className="h-8 w-20 text-right" value={r.receivedQty} onChange={(e) => set({ receivedQty: Number(e.target.value) || 0 })} aria-label="Received quantity" /></td>
@@ -233,24 +244,19 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
                     <td className="py-1.5 pr-2"><MoneyInput className="h-8 w-24" value={r.mrpMinor} onChange={(v) => set({ mrpMinor: v })} aria-label="MRP" /></td>
                     <td className="py-1.5 pr-2"><MoneyInput className="h-8 w-24" value={r.sellingPriceMinor} onChange={(v) => set({ sellingPriceMinor: v })} aria-label="Selling price" /></td>
                   </tr>
-                );
-              })}
-              {pendingLines.map((l) => {
-                const r = rows[l.lineId];
-                if (!r) return null;
-                const packs = (r.receivedQty || 0) + (r.freeQty || 0);
-                if (packs <= 0) return null;
-                return (
-                  <tr key={`${l.lineId}-codes`} className="bg-bg-subtle/40">
-                    <td colSpan={9} className="px-2 py-2">
-                      <BarcodeCapture
-                        productName={l.productName}
-                        expected={packs}
-                        codes={r.barcodes}
-                        onChange={(codes) => setRows((x) => ({ ...x, [l.lineId]: { ...r, barcodes: codes } }))}
-                      />
-                    </td>
-                  </tr>
+                  {packs > 0 ? (
+                    <tr className="bg-bg-subtle/50">
+                      <td colSpan={9} className="px-2 pb-2">
+                        <BarcodeCapture
+                          productName={l.productName}
+                          expected={packs}
+                          codes={r.barcodes}
+                          onChange={(codes) => setRows((x) => ({ ...x, [l.lineId]: { ...r, barcodes: codes } }))}
+                        />
+                      </td>
+                    </tr>
+                  ) : null}
+                  </React.Fragment>
                 );
               })}
             </tbody>
