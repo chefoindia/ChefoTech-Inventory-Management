@@ -73,7 +73,7 @@ function LineBarcodes({ productName, expected, codes, onChange }: { productName:
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] uppercase tracking-wide text-fg-subtle">Pack barcodes <span className="lowercase">(optional)</span></span>
+      <span className="w-44 shrink-0 truncate text-[13px] font-medium" title={productName}>{productName}</span>
       <Input
         className="h-8 w-52 font-mono"
         placeholder={`Scan a label for ${productName}`}
@@ -271,8 +271,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
                 const lineTotal = computed?.lines[lines.filter((x) => x.product && x.qty && x.purchasePriceMinor !== null).indexOf(l)]?.totalMinor;
                 const err = (f: string) => errors[`lines.${i}.${f}`];
                 return (
-                  <React.Fragment key={l.key}>
-                  <tr className="align-top">
+                  <tr key={l.key} className="align-top">
                     <td className="px-3 py-1.5">
                       <ProductPicker value={l.productId || null} onChange={(id, hit) => setProduct(l.key, id, hit)} disabled={!!purchase && purchase.status !== 'draft'} />
                       {l.product?.packLabel ? <div className="mt-0.5 text-[11px] text-fg-subtle">{l.product.packLabel}</div> : null}
@@ -291,14 +290,6 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
                     <td className="px-2 py-1.5 text-right tabular font-medium leading-8">{lineTotal !== undefined ? money(lineTotal) : '—'}</td>
                     <td className="px-1 py-1.5"><Button variant="ghost" size="icon-sm" aria-label="Remove line" onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [emptyLine()]))}><Trash2 className="h-3.5 w-3.5" /></Button></td>
                   </tr>
-                  {receiveNow && !purchase && l.product ? (
-                    <tr className="bg-bg-subtle/50">
-                      <td colSpan={13} className="px-3 pb-2">
-                        <LineBarcodes productName={l.product.name} expected={(l.qty ?? 0) + (l.freeQty ?? 0)} codes={l.barcodes} onChange={(codes) => updateLine(l.key, { barcodes: codes })} />
-                      </td>
-                    </tr>
-                  ) : null}
-                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -324,6 +315,23 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
               <label className="flex items-center gap-2"><Checkbox checked={roundOff} onChange={(e) => setRoundOff(e.target.checked)} /> Round off to the rupee</label>
               {!purchase && canReceive ? <label className="flex items-center gap-2"><Checkbox checked={receiveNow} onChange={(e) => setReceiveNow(e.target.checked)} /> Receive all stock now (skip separate GRN)</label> : null}
             </div>
+            {receiveNow && !purchase && lines.some((l) => l.product) ? (
+              <div>
+                <div className="mb-1 text-[13px] font-medium">Pack barcodes <span className="font-normal text-fg-subtle">(optional — one label per pack, per product)</span></div>
+                <div className="divide-y divide-border rounded-md border border-border">
+                  {lines.filter((l) => l.product).map((l) => (
+                    <div key={l.key} className="px-3 py-2">
+                      <LineBarcodes
+                        productName={l.product!.name}
+                        expected={(l.qty ?? 0) + (l.freeQty ?? 0)}
+                        codes={l.barcodes}
+                        onChange={(codes) => updateLine(l.key, { barcodes: codes })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {!purchase && canPay ? (
               <div>
                 <div className="mb-1 text-[13px] font-medium">Payment made now <span className="font-normal text-fg-subtle">(optional; leave empty to pay later)</span></div>

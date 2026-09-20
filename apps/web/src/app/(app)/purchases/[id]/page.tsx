@@ -210,13 +210,22 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
     setRows(r);
     setKey(newIdempotencyKey());
   };
+
+  // Radix only fires onOpenChange for its OWN open/close events, so a dialog opened by the
+  // parent setting state (the Receive goods button, or ?receive=1) never initialised its rows
+  // and rendered an empty table. Seed from `open` instead, which covers every way in.
+  React.useEffect(() => {
+    if (open) init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, purchase.id]);
+
   const submit = () => {
     const lines = Object.entries(rows).filter(([, r]) => r.receivedQty > 0 || r.freeQty > 0 || r.damagedQty > 0).map(([purchaseLineId, r]) => ({ purchaseLineId, receivedQty: r.receivedQty, freeQty: r.freeQty, damagedQty: r.damagedQty, batchNumber: r.batchNumber || undefined, expiryDate: r.expiryDate ? new Date(r.expiryDate) : undefined, mrpMinor: r.mrpMinor ?? undefined, sellingPriceMinor: r.sellingPriceMinor ?? undefined, barcodes: r.barcodes, note: r.note }));
     if (!lines.length) return toast.error('Enter a received quantity on at least one line.');
     create.mutate({ idempotencyKey: key, input: { purchaseId: purchase.id, receivedDate: new Date(receivedDate), lines, attachments: [], notes, confirm } }, { onSuccess: (g) => { toast.success(`${g.number} ${g.status === 'confirmed' ? 'confirmed, stock added' : 'saved as draft'}`); onOpenChange(false); onDone(g.id); }, onError: (e) => toast.error(errorMessage(e)) });
   };
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (o) init(); if (!create.isPending) onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!create.isPending) onOpenChange(o); }}>
       <DialogContent title={`Receive goods · ${purchase.number}`} description="Check quantities against the physical delivery, then scan a barcode label for each pack so it can be traced back to this batch’s prices and expiry. Short or damaged items stay pending for a later receipt." size="xl">
         <FormGrid className="sm:grid-cols-3">
           <FormField info="The date the goods actually arrived, which may be later than the invoice date. Stock is added as of this date." label="Received on" htmlFor="grn-date"><Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} /></FormField>
