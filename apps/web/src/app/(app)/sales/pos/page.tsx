@@ -34,7 +34,7 @@ import { FormField } from '@/components/ui/form-field';
 
 /* ------------------------------------------------------------------ search */
 
-function ProductSearch({ onPick, inputRef }: { onPick: (p: ProductSearchHit) => void; inputRef: React.RefObject<HTMLInputElement | null> }) {
+function ProductSearch({ onPick, inputRef }: { onPick: (p: ProductSearchHit, batchId?: string) => void; inputRef: React.RefObject<HTMLInputElement | null> }) {
   const [q, setQ] = React.useState('');
   const dq = useDebounce(q, 150);
   const search = useProductSearch(dq, true, 12);
@@ -44,8 +44,8 @@ function ProductSearch({ onPick, inputRef }: { onPick: (p: ProductSearchHit) => 
   const results = search.data ?? [];
   React.useEffect(() => setActive(0), [results]);
 
-  const pick = (p: ProductSearchHit) => {
-    onPick(p);
+  const pick = (p: ProductSearchHit, batchId?: string) => {
+    onPick(p, batchId);
     setQ('');
     setOpen(false);
     inputRef.current?.focus();
@@ -55,7 +55,9 @@ function ProductSearch({ onPick, inputRef }: { onPick: (p: ProductSearchHit) => 
     setScanning(true);
     try {
       const hit = await lookupBarcode(code);
-      pick(hit);
+      // A pack LABEL identifies the exact batch, so sell THAT batch — its own selling price and
+      // MRP, not the product's current defaults.
+      pick(hit, hit.matchedBatchId);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) toast.error(`No product with barcode ${code}`);
       else toast.error(errorMessage(err));
@@ -185,13 +187,15 @@ export default function PosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grandTotal, creditMinor]);
 
-  const addProduct = React.useCallback((hit: ProductSearchHit) => {
+  const addProduct = React.useCallback((hit: ProductSearchHit, batchId?: string) => {
     const product = toCartProduct(hit);
     const unitId = defaultSaleUnit(product);
     setLines((ls) => {
-      const existing = ls.find((l) => l.product.id === product.id && l.unitId === unitId && !l.batchId);
+      // Merge only into a line on the same batch: two packs of different batches can carry
+      // different prices, so they must stay separate lines.
+      const existing = ls.find((l) => l.product.id === product.id && l.unitId === unitId && (l.batchId ?? undefined) === batchId);
       if (existing) return ls.map((l) => (l === existing ? { ...l, qty: l.qty + 1 } : l));
-      return [...ls, { key: lineKey(), product, unitId, qty: 1, discountBps: 0, discountMinor: 0, note: '' }];
+      return [...ls, { key: lineKey(), product, unitId, batchId, qty: 1, discountBps: 0, discountMinor: 0, note: '' }];
     });
   }, []);
 

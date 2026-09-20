@@ -191,6 +191,35 @@ describe('purchases → GRN → stock → payable', () => {
     expect(scan.status).toBe(404);
   });
 
+
+  it('sells a scanned pack at ITS batch price, not the product default', async () => {
+    const t = await registerTenant();
+    const sup = await createSupplier(t);
+    const p = await createTabletProduct(t);
+    const u = await unitIds(t);
+
+    // Two receipts of the same product at different selling prices, each labelled.
+    await createPurchase(t, sup.id, p.id, u.strip, { receiveNow: true }, { batchNumber: 'OLD', expiryDate: inDays(200), sellingPriceMinor: 10_000, mrpMinor: 12_000, barcodes: ['PACK-OLD'] });
+    await createPurchase(t, sup.id, p.id, u.strip, { receiveNow: true }, { batchNumber: 'NEW', expiryDate: inDays(600), sellingPriceMinor: 25_000, mrpMinor: 30_000, barcodes: ['PACK-NEW'] });
+
+    // Scanning the NEW pack must resolve to the NEW batch...
+    const scan = await request(app).get(`${BASE}/products/by-barcode/PACK-NEW`).set(hdr(t));
+    expect(scan.status).toBe(200);
+    const batchId = scan.body.data.matchedBatchId as string;
+    expect(batchId).toBeTruthy();
+
+    // ...and selling that batch must use ITS price (250.00), not FEFO's older 100.00 batch.
+    const quoted = await request(app).post(`${BASE}/sales/quote`).set(hdr(t)).send({ lines: [{ productId: p.id, unitId: u.strip, batchId, qty: 1 }] });
+    expect(quoted.status).toBe(200);
+    expect(quoted.body.data.lines[0].batchNumber).toBe('NEW');
+    expect(quoted.body.data.lines[0].unitPriceMinor).toBe(25_000);
+
+    // Without the label, FEFO picks the older, cheaper batch — which is the behaviour a scan overrides.
+    const fefo = await request(app).post(`${BASE}/sales/quote`).set(hdr(t)).send({ lines: [{ productId: p.id, unitId: u.strip, qty: 1 }] });
+    expect(fefo.body.data.lines[0].batchNumber).toBe('OLD');
+    expect(fefo.body.data.lines[0].unitPriceMinor).toBe(10_000);
+  });
+
   it('handles partial receipt, short and damaged quantities', async () => {
     const t = await registerTenant();
     const sup = await createSupplier(t);
