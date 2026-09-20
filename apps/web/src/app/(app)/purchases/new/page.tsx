@@ -9,7 +9,7 @@ export default function NewPurchasePage() {
   return (
     <>
       <PageHeader title="New purchase" description="Record a supplier invoice. Receive stock immediately or later through a goods receipt." />
-      <PurchaseForm purchase={null} onSaved={(p, receiveNext) => router.replace(`/purchases/${p.id}${receiveNext ? '?receive=1' : ''}`)} onCancel={() => router.push('/purchases')} />
+      <PurchaseForm purchase={null} onSaved={(p) => router.replace(`/purchases/${p.id}`)} onCancel={() => router.push('/purchases')} />
     </>
   );
 }

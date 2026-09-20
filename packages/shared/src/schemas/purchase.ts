@@ -21,6 +21,11 @@ export const purchaseLineSchema = z.object({
   schemeNote: z.string().trim().max(120).optional().default(''),
   taxRateBps: z.number().int().min(0).max(10_000).optional(),
   cessBps: z.number().int().min(0).max(10_000).optional(),
+  /**
+   * Optional barcode labels for the packs on this line. Only meaningful with receiveNow, where
+   * the stock is received inline and there is no separate goods receipt to capture them in.
+   */
+  barcodes: z.array(barcodeLabelSchema).max(500).default([]),
 });
 export type PurchaseLineInput = z.infer<typeof purchaseLineSchema>;
 

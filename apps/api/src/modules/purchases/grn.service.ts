@@ -157,7 +157,7 @@ async function applyGrn(ctx: RequestContext, grn: GrnDoc, purchaseRef: PurchaseE
 }
 
 /** Receive every line of a purchase in full (used by receiveNow). */
-export async function receiveAll(ctx: RequestContext, purchase: PurchaseEntity, session: ClientSession) {
+export async function receiveAll(ctx: RequestContext, purchase: PurchaseEntity, session: ClientSession, barcodesByLine: Record<string, string[]> = {}) {
   const { number } = await nextDocumentNumber(ctx.organizationId, purchase.outletId, 'grn', session);
   const [grn] = await GrnModel.create(
     [
@@ -194,7 +194,7 @@ export async function receiveAll(ctx: RequestContext, purchase: PurchaseEntity, 
           purchasePriceMinor: l.purchasePriceMinor,
           mrpMinor: l.mrpMinor,
           sellingPriceMinor: l.sellingPriceMinor,
-          barcodes: [],
+          barcodes: [...new Set((barcodesByLine[l.lineId] ?? []).map((c) => c.trim()).filter(Boolean))],
         })),
         receivedBy: ctx.userId,
         confirmedBy: ctx.userId,

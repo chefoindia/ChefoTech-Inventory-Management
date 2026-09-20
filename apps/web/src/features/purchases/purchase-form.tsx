@@ -43,18 +43,56 @@ interface LineDraft {
   discountMinor: number;
   schemeNote: string;
   taxRateBps: number | null;
+  /** Optional pack barcodes, only collected when the stock is received with the purchase. */
+  barcodes: string[];
 }
 
 const key = () => Math.random().toString(36).slice(2, 10);
-const emptyLine = (): LineDraft => ({ key: key(), productId: '', unitId: '', qty: null, freeQty: 0, batchNumber: '', mfgDate: '', expiryDate: '', purchasePriceMinor: null, mrpMinor: null, sellingPriceMinor: null, discountBps: 0, discountMinor: 0, schemeNote: '', taxRateBps: null });
+const emptyLine = (): LineDraft => ({ key: key(), productId: '', unitId: '', qty: null, freeQty: 0, batchNumber: '', mfgDate: '', expiryDate: '', purchasePriceMinor: null, mrpMinor: null, sellingPriceMinor: null, discountBps: 0, discountMinor: 0, schemeNote: '', taxRateBps: null, barcodes: [] });
 
 function fromDto(p: PurchaseDto): LineDraft[] {
-  return p.lines.map((l) => ({ key: l.lineId, productId: l.productId, product: { name: l.productName, units: [{ unitId: l.unitId, unitName: l.unitName, abbreviation: l.unitName, factorToBase: l.factorToBase, isDefaultPurchase: true, isDefaultSale: false, allowLooseSale: true }], pricingUnitId: l.unitId, baseUnitId: l.unitId, taxRateBps: l.taxRateBps, cessBps: l.cessBps, mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, purchasePriceMinor: l.purchasePriceMinor, packLabel: l.packLabel }, unitId: l.unitId, qty: l.qty, freeQty: l.freeQty, batchNumber: l.batchNumber, mfgDate: l.mfgDate ? dateInput(l.mfgDate) : '', expiryDate: dateInput(l.expiryDate), purchasePriceMinor: l.purchasePriceMinor, mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, discountBps: l.discountBps, discountMinor: l.discountMinor, schemeNote: l.schemeNote, taxRateBps: l.taxRateBps }));
+  return p.lines.map((l) => ({ key: l.lineId, productId: l.productId, product: { name: l.productName, units: [{ unitId: l.unitId, unitName: l.unitName, abbreviation: l.unitName, factorToBase: l.factorToBase, isDefaultPurchase: true, isDefaultSale: false, allowLooseSale: true }], pricingUnitId: l.unitId, baseUnitId: l.unitId, taxRateBps: l.taxRateBps, cessBps: l.cessBps, mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, purchasePriceMinor: l.purchasePriceMinor, packLabel: l.packLabel }, unitId: l.unitId, qty: l.qty, freeQty: l.freeQty, batchNumber: l.batchNumber, mfgDate: l.mfgDate ? dateInput(l.mfgDate) : '', expiryDate: dateInput(l.expiryDate), purchasePriceMinor: l.purchasePriceMinor, mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, discountBps: l.discountBps, discountMinor: l.discountMinor, schemeNote: l.schemeNote, taxRateBps: l.taxRateBps, barcodes: [] }));
 }
 
 const GST_RATES = [0, 500, 1200, 1800, 2800];
 
 /** Purchase invoice entry. Totals are computed client-side with the shared tax engine and verified server-side. */
+/**
+ * Optional pack barcodes for one purchase line, shown only when the stock is being received
+ * with the purchase (otherwise they are captured on the goods receipt instead). Scanners send
+ * the code followed by Enter, so a strip is one scan.
+ */
+function LineBarcodes({ productName, expected, codes, onChange }: { productName: string; expected: number; codes: string[]; onChange: (codes: string[]) => void }) {
+  const [draft, setDraft] = React.useState('');
+  const add = (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+    if (codes.includes(code)) { toast.error(`${code} is already scanned for ${productName}`); setDraft(''); return; }
+    onChange([...codes, code]);
+    setDraft('');
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] uppercase tracking-wide text-fg-subtle">Pack barcodes <span className="lowercase">(optional)</span></span>
+      <Input
+        className="h-8 w-52 font-mono"
+        placeholder={`Scan a label for ${productName}`}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }}
+        aria-label={`Barcode label for ${productName}`}
+      />
+      <Button variant="secondary" size="sm" onClick={() => add(draft)} disabled={!draft.trim()}>Add</Button>
+      {expected > 0 ? <span className={`text-[12px] ${codes.length >= expected ? 'text-success-700' : 'text-fg-subtle'}`}>{codes.length} of {expected} labelled</span> : null}
+      {codes.map((c) => (
+        <button key={c} type="button" onClick={() => onChange(codes.filter((x) => x !== c))} className="inline-flex items-center gap-1 rounded-full border border-border bg-bg px-2 py-0.5 font-mono text-[11px] hover:border-danger-400 hover:text-danger-600" title="Remove this label">
+          {c} <span aria-hidden>×</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: PurchaseDto | null; onSaved: (p: PurchaseDto, receiveNext?: boolean) => void; onCancel: () => void }) {
   const me = useSession((s) => s.me)!;
   const outletId = useSession((s) => s.activeOutletId);
@@ -173,7 +211,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
       supplierInvoiceNumber: invoiceNumber,
       invoiceDate: invoiceDate ? new Date(invoiceDate) : undefined,
       dueDate: dueDate ? new Date(dueDate) : undefined,
-      lines: lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, unitId: l.unitId, qty: l.qty ?? 0, freeQty: l.freeQty ?? 0, batchNumber: l.batchNumber, mfgDate: l.mfgDate ? new Date(l.mfgDate) : undefined, expiryDate: l.expiryDate ? new Date(l.expiryDate) : undefined, purchasePriceMinor: l.purchasePriceMinor ?? 0, mrpMinor: l.mrpMinor ?? 0, sellingPriceMinor: l.sellingPriceMinor ?? undefined, discountBps: l.discountBps, discountMinor: l.discountMinor, schemeNote: l.schemeNote, taxRateBps: l.taxRateBps ?? undefined })),
+      lines: lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, unitId: l.unitId, qty: l.qty ?? 0, freeQty: l.freeQty ?? 0, batchNumber: l.batchNumber, mfgDate: l.mfgDate ? new Date(l.mfgDate) : undefined, expiryDate: l.expiryDate ? new Date(l.expiryDate) : undefined, purchasePriceMinor: l.purchasePriceMinor ?? 0, mrpMinor: l.mrpMinor ?? 0, sellingPriceMinor: l.sellingPriceMinor ?? undefined, discountBps: l.discountBps, discountMinor: l.discountMinor, schemeNote: l.schemeNote, taxRateBps: l.taxRateBps ?? undefined, barcodes: receiving ? l.barcodes : [] })),
       billDiscountBps,
       billDiscountMinor,
       otherChargesMinor,
@@ -233,7 +271,8 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
                 const lineTotal = computed?.lines[lines.filter((x) => x.product && x.qty && x.purchasePriceMinor !== null).indexOf(l)]?.totalMinor;
                 const err = (f: string) => errors[`lines.${i}.${f}`];
                 return (
-                  <tr key={l.key} className="align-top">
+                  <React.Fragment key={l.key}>
+                  <tr className="align-top">
                     <td className="px-3 py-1.5">
                       <ProductPicker value={l.productId || null} onChange={(id, hit) => setProduct(l.key, id, hit)} disabled={!!purchase && purchase.status !== 'draft'} />
                       {l.product?.packLabel ? <div className="mt-0.5 text-[11px] text-fg-subtle">{l.product.packLabel}</div> : null}
@@ -252,6 +291,14 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
                     <td className="px-2 py-1.5 text-right tabular font-medium leading-8">{lineTotal !== undefined ? money(lineTotal) : '—'}</td>
                     <td className="px-1 py-1.5"><Button variant="ghost" size="icon-sm" aria-label="Remove line" onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((x) => x.key !== l.key) : [emptyLine()]))}><Trash2 className="h-3.5 w-3.5" /></Button></td>
                   </tr>
+                  {receiveNow && !purchase && l.product ? (
+                    <tr className="bg-bg-subtle/50">
+                      <td colSpan={13} className="px-3 pb-2">
+                        <LineBarcodes productName={l.product.name} expected={(l.qty ?? 0) + (l.freeQty ?? 0)} codes={l.barcodes} onChange={(codes) => updateLine(l.key, { barcodes: codes })} />
+                      </td>
+                    </tr>
+                  ) : null}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -275,6 +322,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
             </FormGrid>
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <label className="flex items-center gap-2"><Checkbox checked={roundOff} onChange={(e) => setRoundOff(e.target.checked)} /> Round off to the rupee</label>
+              {!purchase && canReceive ? <label className="flex items-center gap-2"><Checkbox checked={receiveNow} onChange={(e) => setReceiveNow(e.target.checked)} /> Receive all stock now (skip separate GRN)</label> : null}
             </div>
             {!purchase && canPay ? (
               <div>
@@ -299,13 +347,8 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
             {!totals ? <p className="text-[13px] text-fg-subtle">Add items to see totals.</p> : null}
           </CardContent>
           <CardFooter className="flex-col items-stretch gap-2">
-            <Button loading={pending && !receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(false); submit(); }}><Save className="h-4 w-4" /> {purchase ? 'Save changes' : 'Save purchase'}</Button>
-            {!purchase && canReceive ? (
-              <>
-                <Button variant="secondary" loading={pending && receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(true); submit(false, true); }}><PackageCheck className="h-4 w-4" /> Save &amp; receive now…</Button>
-                <p className="text-[12px] text-fg-subtle">Saving only records the supplier bill; stock stays out until you receive it. Receiving opens the goods receipt, where you scan a barcode label for each pack that arrived.</p>
-              </>
-            ) : null}
+            <Button loading={pending} disabled={!totals || !supplierId} onClick={() => submit()}>{receiveNow && !purchase ? <PackageCheck className="h-4 w-4" /> : <Save className="h-4 w-4" />} {purchase ? 'Save changes' : receiveNow ? 'Save & receive stock' : 'Save purchase'}</Button>
+            {!purchase ? <p className="text-[12px] text-fg-subtle">{receiveNow ? 'Stock is added now. The pack barcodes on each line are optional.' : 'Only the supplier bill is recorded — receive the stock later from the purchase, where you can scan the pack barcodes.'}</p> : null}
             <Button variant="secondary" onClick={onCancel} disabled={pending}>Cancel</Button>
           </CardFooter>
         </Card>

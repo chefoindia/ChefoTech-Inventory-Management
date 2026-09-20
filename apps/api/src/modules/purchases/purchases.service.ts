@@ -156,10 +156,15 @@ export async function buildPurchaseLines(ctx: RequestContext, outletId: Types.Ob
     { billDiscountBps: input.billDiscountBps, billDiscountMinor: input.billDiscountMinor, otherChargesMinor: input.otherChargesMinor, roundOff: input.roundOff ? 'nearest' : 'none' },
   );
 
+  // Optional pack labels typed on the form, keyed by the lineId generated just below.
+  const barcodesByLine: Record<string, string[]> = {};
   const lines = prepared.map((p, i) => {
     const t = taxed[i]!;
+    const lineId = randomToken(6);
+    const codes = [...new Set((p.input.barcodes ?? []).map((c) => c.trim()).filter(Boolean))];
+    if (codes.length) barcodesByLine[lineId] = codes;
     return {
-      lineId: randomToken(6),
+      lineId,
       productId: p.product._id,
       productName: p.product.name,
       packLabel: p.product.packLabel ?? '',
@@ -195,7 +200,7 @@ export async function buildPurchaseLines(ctx: RequestContext, outletId: Types.Ob
       totalMinor: t.totalMinor,
     };
   });
-  return { lines, totals, isInterState: isInterState(taxCtx) };
+  return { lines, totals, isInterState: isInterState(taxCtx), barcodesByLine };
 }
 
 export async function createPurchase(ctx: RequestContext, input: CreatePurchaseInput, idempotencyKey?: string) {
@@ -207,7 +212,7 @@ export async function createPurchase(ctx: RequestContext, input: CreatePurchaseI
   if (input.receiveNow && !hasPermission(ctx, 'purchases.approveGrn')) throw new BusinessRuleError('You cannot receive stock; save the purchase and let an authorised user confirm the GRN');
 
   const customFields = await validateCustomFields(ctx, 'purchase', input.customFields);
-  const { lines, totals, isInterState: inter } = await buildPurchaseLines(ctx, outletId, supplier, input);
+  const { lines, totals, isInterState: inter, barcodesByLine } = await buildPurchaseLines(ctx, outletId, supplier, input);
   if (input.expectedGrandTotalMinor !== undefined && input.expectedGrandTotalMinor !== totals.grandTotalMinor) {
     throw new BusinessRuleError(`Totals changed: server computed ${totals.grandTotalMinor / 100}, you sent ${input.expectedGrandTotalMinor / 100}. Review and submit again.`);
   }
@@ -267,7 +272,7 @@ export async function createPurchase(ctx: RequestContext, input: CreatePurchaseI
 
     await audit(ctx, { action: 'purchase.created', entityType: 'Purchase', entityId: purchase._id, summary: `Recorded purchase ${number} from ${supplier.name} (${totals.grandTotalMinor / 100})`, after: { number, supplierInvoiceNumber: input.supplierInvoiceNumber, grandTotalMinor: totals.grandTotalMinor, paidMinor: paid }, metadata: idempotencyKey ? { idempotencyKey } : undefined }, session);
 
-    if (input.receiveNow) await receiveAll(ctx, purchase, session);
+    if (input.receiveNow) await receiveAll(ctx, purchase, session, barcodesByLine);
     return purchase;
   });
   return dto(ctx, doc.toObject() as PurchaseDoc);

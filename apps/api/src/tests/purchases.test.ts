@@ -160,6 +160,37 @@ describe('purchases → GRN → stock → payable', () => {
     expect(removed.body.data.barcodes.some((b: { code: string }) => b.code === 'MANUAL-123')).toBe(false);
   });
 
+
+  it('receiveNow carries the pack barcodes typed on the purchase lines onto the batch', async () => {
+    const t = await registerTenant();
+    const sup = await createSupplier(t);
+    const p = await createTabletProduct(t);
+    const u = await unitIds(t);
+
+    // Ticking "receive all stock now" collects the labels on the form itself.
+    const purchase = await createPurchase(t, sup.id, p.id, u.strip, { receiveNow: true }, { barcodes: ['INLINE-1', 'INLINE-2'] });
+    expect(purchase.status).toBe('received');
+
+    const scan = await request(app).get(`${BASE}/products/by-barcode/INLINE-2`).set(hdr(t));
+    expect(scan.status).toBe(200);
+    expect(scan.body.data.matchedBatchId).toBeTruthy();
+    const batch = scan.body.data.batches?.find((b: { batchId: string }) => b.batchId === scan.body.data.matchedBatchId);
+    expect(batch?.batchNumber).toBe('PB1');
+    expect(batch?.purchasePriceMinor).toBe(13_200);
+  });
+
+  it('leaves barcodes empty when the purchase is saved without receiving', async () => {
+    const t = await registerTenant();
+    const sup = await createSupplier(t);
+    const p = await createTabletProduct(t);
+    const u = await unitIds(t);
+    // Labels sent without receiveNow are ignored: there is no batch yet to stick them on.
+    const purchase = await createPurchase(t, sup.id, p.id, u.strip, { receiveNow: false }, { barcodes: ['IGNORED-1'] });
+    expect(purchase.status).toBe('confirmed');
+    const scan = await request(app).get(`${BASE}/products/by-barcode/IGNORED-1`).set(hdr(t));
+    expect(scan.status).toBe(404);
+  });
+
   it('handles partial receipt, short and damaged quantities', async () => {
     const t = await registerTenant();
     const sup = await createSupplier(t);
