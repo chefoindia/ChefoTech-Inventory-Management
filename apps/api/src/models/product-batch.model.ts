@@ -22,6 +22,13 @@ const productBatchSchema = new Schema(
     sourceType: { type: String, enum: ['grn', 'opening', 'transfer', 'adjustment', 'import'], default: 'grn' },
     sourceId: { type: Schema.Types.ObjectId, default: null },
     /** Blocked batches are excluded from sale (recall, quality hold). */
+    /**
+     * Barcode LABEL ids stuck on the physical packs of this batch (one per strip/box), captured
+     * when the goods are received. Scanning one resolves to this batch, so the counter sees the
+     * real purchase price, selling price, MRP and expiry of the pack in hand. Manufacturer EAN
+     * codes stay on the product (shared by every batch); these are per-batch and unique.
+     */
+    barcodes: { type: [String], default: [] },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },
     blockReason: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -30,6 +37,9 @@ const productBatchSchema = new Schema(
 );
 
 productBatchSchema.index({ organizationId: 1, productId: 1, batchNumberNormalized: 1, mrpMinor: 1 }, { unique: true });
+// $type filters to batches that actually carry a label: an EMPTY array still satisfies
+// `$exists: true`, which would make every unlabelled batch collide on the unique index.
+productBatchSchema.index({ organizationId: 1, barcodes: 1 }, { unique: true, partialFilterExpression: { barcodes: { $type: 'string' } } });
 productBatchSchema.index({ organizationId: 1, expiryDate: 1 });
 productBatchSchema.index({ organizationId: 1, productId: 1, expiryDate: 1 });
 

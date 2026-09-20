@@ -75,7 +75,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
   const [otherChargesNote, setOtherChargesNote] = React.useState(purchase?.otherChargesNote ?? '');
   const [roundOff, setRoundOff] = React.useState(true);
   const [payments, setPayments] = React.useState<PaymentDraft[]>([]);
-  const [receiveNow, setReceiveNow] = React.useState(!purchase);
+  const [receiveNow, setReceiveNow] = React.useState(false);
   const [attachments, setAttachments] = React.useState<AttachmentRef[]>(purchase?.attachments ?? []);
   const [notes, setNotes] = React.useState(purchase?.notes ?? '');
   const [customFields, setCustomFields] = React.useState<Record<string, unknown>>(purchase?.customFields ?? {});
@@ -166,7 +166,8 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
   const totals: DocumentTotals | null = computed?.totals ?? null;
   const paid = payments.reduce((s, p) => s + (p.amountMinor ?? 0), 0);
 
-  const submit = () => {
+  const submit = (receiveNowOverride?: boolean) => {
+    const receiving = receiveNowOverride ?? receiveNow;
     const input = {
       supplierId: supplierId ?? '',
       supplierInvoiceNumber: invoiceNumber,
@@ -179,7 +180,7 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
       otherChargesNote,
       roundOff,
       payments: toPaymentLines(payments),
-      receiveNow,
+      receiveNow: receiving,
       attachments,
       notes,
       customFields,
@@ -274,7 +275,6 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
             </FormGrid>
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <label className="flex items-center gap-2"><Checkbox checked={roundOff} onChange={(e) => setRoundOff(e.target.checked)} /> Round off to the rupee</label>
-              {!purchase && canReceive ? <label className="flex items-center gap-2"><Checkbox checked={receiveNow} onChange={(e) => setReceiveNow(e.target.checked)} /> Receive all stock now (skip separate GRN)</label> : null}
             </div>
             {!purchase && canPay ? (
               <div>
@@ -299,7 +299,13 @@ export function PurchaseForm({ purchase, onSaved, onCancel }: { purchase: Purcha
             {!totals ? <p className="text-[13px] text-fg-subtle">Add items to see totals.</p> : null}
           </CardContent>
           <CardFooter className="flex-col items-stretch gap-2">
-            <Button loading={pending} disabled={!totals || !supplierId} onClick={submit}>{receiveNow && !purchase ? <PackageCheck className="h-4 w-4" /> : <Save className="h-4 w-4" />} {purchase ? 'Save changes' : receiveNow ? 'Save & receive stock' : 'Save purchase'}</Button>
+            <Button loading={pending && !receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(false); submit(); }}><Save className="h-4 w-4" /> {purchase ? 'Save changes' : 'Save purchase'}</Button>
+            {!purchase && canReceive ? (
+              <>
+                <Button variant="secondary" loading={pending && receiveNow} disabled={!totals || !supplierId || pending} onClick={() => { setReceiveNow(true); submit(true); }}><PackageCheck className="h-4 w-4" /> Save &amp; receive everything</Button>
+                <p className="text-[12px] text-fg-subtle">Saving only records the supplier bill — stock stays out until you receive it. Receive later from the purchase to scan the pack barcodes.</p>
+              </>
+            ) : null}
             <Button variant="secondary" onClick={onCancel} disabled={pending}>Cancel</Button>
           </CardFooter>
         </Card>

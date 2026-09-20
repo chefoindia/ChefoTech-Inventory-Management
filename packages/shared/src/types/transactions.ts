@@ -97,7 +97,7 @@ export interface GrnLineDto {
   expiryDate: string;
   mrpMinor: number;
   purchasePriceMinor: number;
-  note: string;
+  note: string;  barcodes: string[];
 }
 
 export interface GrnDto {

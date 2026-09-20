@@ -95,6 +95,8 @@ export interface ProductSearchHit {
   /** Total sellable stock at the active outlet in base units (POS mode). */
   stockBase?: number;
   batches?: BatchStockDto[];
+  /** Set when the scanned code was a batch LABEL: the exact pack, so its own prices apply. */
+  matchedBatchId?: string;
 }
 
 export interface BatchStockDto {

@@ -71,6 +71,95 @@ describe('purchases → GRN → stock → payable', () => {
     expect(batches.body.data[0].purchasePriceMinor).toBe(13_200);
   });
 
+
+  it('saves a purchase without receiving, then receives it with pack barcodes that scan back to the batch', async () => {
+    const t = await registerTenant();
+    const sup = await createSupplier(t);
+    const p = await createTabletProduct(t);
+    const u = await unitIds(t);
+
+    // 1. Save only — the supplier bill is recorded but no stock exists yet.
+    const purchase = await createPurchase(t, sup.id, p.id, u.strip, { receiveNow: false });
+    expect(purchase.status).toBe('confirmed');
+    expect(purchase.grnIds ?? []).toHaveLength(0);
+    let stock = await request(app).get(`${BASE}/inventory/stock`).set(hdr(t));
+    expect(stock.body.data[0]?.onHandBase ?? 0).toBe(0);
+
+    // 2. Receive later, labelling each of the 7 strips that physically arrived.
+    const lineId = purchase.lines[0].lineId;
+    const labels = ['MTK-0001', 'MTK-0002', 'MTK-0003', 'MTK-0004', 'MTK-0005', 'MTK-0006', 'MTK-0007'];
+    const grn = await request(app).post(`${BASE}/grns`).set(hdr(t)).set('Idempotency-Key', key()).send({
+      purchaseId: purchase.id,
+      lines: [{ purchaseLineId: lineId, receivedQty: 7, barcodes: labels }],
+    });
+    expect(grn.status).toBe(201);
+    expect(grn.body.data.lines[0].barcodes).toEqual(labels);
+
+    // Part of the order is still outstanding, so the purchase is only partially received.
+    const after = await request(app).get(`${BASE}/purchases/${purchase.id}`).set(hdr(t));
+    expect(after.body.data.status).toBe('partially_received');
+
+    // 3. Scanning a label resolves to the product AND the exact batch it was stuck on.
+    const scan = await request(app).get(`${BASE}/products/by-barcode/MTK-0004`).set(hdr(t));
+    expect(scan.status).toBe(200);
+    expect(scan.body.data.id).toBe(p.id);
+    expect(scan.body.data.matchedBatchId).toBeTruthy();
+    const batch = scan.body.data.batches?.find((b: { batchId: string }) => b.batchId === scan.body.data.matchedBatchId);
+    expect(batch?.batchNumber).toBe('PB1');
+    // The scanned pack carries its own batch prices, which is the whole point of labelling.
+    expect(batch?.mrpMinor).toBe(18_500);
+    expect(batch?.purchasePriceMinor).toBe(13_200);
+  });
+
+  it('refuses a barcode label that is already on another batch, and a label repeated within one receipt', async () => {
+    const t = await registerTenant();
+    const sup = await createSupplier(t);
+    const p = await createTabletProduct(t);
+    const u = await unitIds(t);
+
+    const first = await createPurchase(t, sup.id, p.id, u.strip);
+    await request(app).post(`${BASE}/grns`).set(hdr(t)).set('Idempotency-Key', key()).send({
+      purchaseId: first.id,
+      lines: [{ purchaseLineId: first.lines[0].lineId, receivedQty: 5, barcodes: ['DUP-001'] }],
+    }).expect(201);
+
+    // Same label on a different batch of the same product must be rejected.
+    const second = await createPurchase(t, sup.id, p.id, u.strip, {}, { batchNumber: 'PB2' });
+    const clash = await request(app).post(`${BASE}/grns`).set(hdr(t)).set('Idempotency-Key', key()).send({
+      purchaseId: second.id,
+      lines: [{ purchaseLineId: second.lines[0].lineId, receivedQty: 5, barcodes: ['DUP-001'] }],
+    });
+    expect(clash.status).toBe(422);
+    expect(String(clash.body.error?.message ?? '')).toContain('already on batch');
+
+    // Scanning the same pack twice on one line is a slip, not an error: it is deduped so the
+    // counter in the UI simply shows one fewer label than packs.
+    const third = await createPurchase(t, sup.id, p.id, u.strip, {}, { batchNumber: 'PB3' });
+    const repeated = await request(app).post(`${BASE}/grns`).set(hdr(t)).set('Idempotency-Key', key()).send({
+      purchaseId: third.id,
+      lines: [{ purchaseLineId: third.lines[0].lineId, receivedQty: 5, barcodes: ['SAME-1', 'SAME-1'] }],
+    });
+    expect(repeated.status).toBe(201);
+    expect(repeated.body.data.lines[0].barcodes).toEqual(['SAME-1']);
+  });
+
+  it('adds and removes product barcodes by hand, rejecting codes already in use', async () => {
+    const t = await registerTenant();
+    const p = await createTabletProduct(t);
+
+    const added = await request(app).post(`${BASE}/products/${p.id}/barcodes`).set(hdr(t)).send({ code: 'MANUAL-123' });
+    expect(added.status).toBe(200);
+    expect(added.body.data.barcodes.some((b: { code: string }) => b.code === 'MANUAL-123')).toBe(true);
+
+    // Same code twice on the same product is pointless.
+    const again = await request(app).post(`${BASE}/products/${p.id}/barcodes`).set(hdr(t)).send({ code: 'MANUAL-123' });
+    expect(again.status).toBe(422);
+
+    const removed = await request(app).delete(`${BASE}/products/${p.id}/barcodes/MANUAL-123`).set(hdr(t));
+    expect(removed.status).toBe(200);
+    expect(removed.body.data.barcodes.some((b: { code: string }) => b.code === 'MANUAL-123')).toBe(false);
+  });
+
   it('handles partial receipt, short and damaged quantities', async () => {
     const t = await registerTenant();
     const sup = await createSupplier(t);

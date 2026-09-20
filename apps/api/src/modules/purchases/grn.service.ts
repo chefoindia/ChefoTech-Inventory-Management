@@ -5,6 +5,7 @@ import { PurchaseModel } from '@/models/purchase.model';
 
 type PurchaseEntity = InstanceType<typeof PurchaseModel>;
 import { ProductModel } from '@/models/product.model';
+import { ProductBatchModel } from '@/models/product-batch.model';
 import type { RequestContext } from '@/lib/context';
 import { hasPermission } from '@/lib/context';
 import { orgFilter, outletFilter } from '@/lib/scoped';
@@ -45,6 +46,7 @@ function toGrnDto(doc: GrnDoc, who: (id: Types.ObjectId | null | undefined) => {
       expiryDate: isoNow(l.expiryDate),
       mrpMinor: l.mrpMinor,
       purchasePriceMinor: showCost ? l.purchasePriceMinor : 0,
+      barcodes: l.barcodes ?? [],
       note: l.note ?? '',
     })),
     attachments: doc.attachments as AttachmentRef[],
@@ -59,6 +61,37 @@ function toGrnDto(doc: GrnDoc, who: (id: Types.ObjectId | null | undefined) => {
 async function dto(ctx: RequestContext, doc: GrnDoc) {
   const who = await userRefs([doc.receivedBy, doc.confirmedBy]);
   return toGrnDto(doc, who, hasPermission(ctx, 'products.viewCost'));
+}
+
+/**
+ * Sticks the barcode LABEL ids captured at receipt onto the batch, so scanning a pack later
+ * resolves straight to its real purchase price, selling price, MRP and expiry.
+ *
+ * Labels are unique per organization (a label identifies one physical pack of one batch), so a
+ * code already used by another batch is rejected with a message naming the clash rather than a
+ * raw duplicate-key error. Re-receiving the same label on the same batch is a no-op, which keeps
+ * a retried transaction safe.
+ */
+async function attachBatchBarcodes(
+  ctx: RequestContext,
+  batchId: Types.ObjectId,
+  codes: string[],
+  productName: string,
+  session: ClientSession,
+) {
+  const unique = [...new Set(codes.map((c) => c.trim()).filter(Boolean))];
+  if (unique.length === 0) return;
+  const clash = await ProductBatchModel.findOne(
+    orgFilter(ctx, { barcodes: { $in: unique }, _id: { $ne: batchId } }),
+  )
+    .select('batchNumber barcodes')
+    .session(session)
+    .lean<{ batchNumber: string; barcodes: string[] }>();
+  if (clash) {
+    const taken = unique.filter((c) => clash.barcodes.includes(c));
+    throw new BusinessRuleError(`${productName}: barcode ${taken.join(', ')} is already on batch ${clash.batchNumber}. Each label belongs to one pack.`);
+  }
+  await ProductBatchModel.updateOne({ _id: batchId }, { $addToSet: { barcodes: { $each: unique } } }, { session });
 }
 
 /**
@@ -95,6 +128,7 @@ async function applyGrn(ctx: RequestContext, grn: GrnDoc, purchaseRef: PurchaseE
       session,
     );
     line.batchId = batch._id;
+    await attachBatchBarcodes(ctx, batch._id, line.barcodes ?? [], line.productName, session);
     if (totalIn > 0) {
       await applyStockChange(ctx, { outletId: grn.outletId, productId: line.productId, batchId: batch._id, qtyBaseDelta: totalIn, reason: 'grn', refType: 'Grn', refId: grn._id, refNumber: grn.number, unitCostMinor: line.purchasePriceMinor, pricingUnitFactor: line.pricingUnitFactor, note: line.freeBase ? `incl. ${line.freeBase} free` : '' }, session);
     }
@@ -160,6 +194,7 @@ export async function receiveAll(ctx: RequestContext, purchase: PurchaseEntity, 
           purchasePriceMinor: l.purchasePriceMinor,
           mrpMinor: l.mrpMinor,
           sellingPriceMinor: l.sellingPriceMinor,
+          barcodes: [],
         })),
         receivedBy: ctx.userId,
         confirmedBy: ctx.userId,
@@ -214,9 +249,14 @@ export async function createGrn(ctx: RequestContext, input: CreateGrnInput) {
       purchasePriceMinor: pl.purchasePriceMinor,
       mrpMinor: g.mrpMinor ?? pl.mrpMinor,
       sellingPriceMinor: g.sellingPriceMinor ?? pl.sellingPriceMinor,
+      barcodes: [...new Set((g.barcodes ?? []).map((c) => c.trim()).filter(Boolean))],
       note: g.note ?? '',
     };
   });
+  // A label identifies one physical pack, so the same code twice in one receipt is a slip.
+  const allCodes = lines.flatMap((l) => l.barcodes);
+  const dupe = allCodes.find((c, i) => allCodes.indexOf(c) !== i);
+  if (dupe) throw new ValidationError(`Barcode ${dupe} is entered on more than one line`, [{ path: 'body.lines', message: dupe }]);
   if (lines.every((l) => l.receivedBase + l.freeBase + l.damagedBase === 0)) throw new ValidationError('Nothing to receive');
 
   const doc = await withTransaction(async (session) => {

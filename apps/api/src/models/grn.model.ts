@@ -26,6 +26,8 @@ const grnLineSchema = new Schema(
     purchasePriceMinor: { type: Number, required: true },
     mrpMinor: { type: Number, required: true },
     sellingPriceMinor: { type: Number, required: true },
+    /** Barcode label ids captured for the packs received on this line (one per strip/box). */
+    barcodes: { type: [String], default: [] },
     note: { type: String, default: '' },
   },
   { _id: false },

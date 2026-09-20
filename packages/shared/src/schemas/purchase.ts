@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { objectIdSchema, paginationQuerySchema } from './common';
 import { attachmentRefSchema } from './attachment';
 import { paymentLineSchema } from './party';
-import { customFieldValuesSchema } from './product';
+import { customFieldValuesSchema, barcodeLabelSchema } from './product';
 
 export const purchaseLineSchema = z.object({
   productId: objectIdSchema,
@@ -72,6 +72,12 @@ export const grnLineSchema = z.object({
   mfgDate: z.coerce.date().optional(),
   mrpMinor: z.number().int().min(0).optional(),
   sellingPriceMinor: z.number().int().min(0).optional(),
+  /**
+   * Barcode label ids for the physical packs arriving on this line — one per strip/box, so a
+   * later scan resolves to this exact batch and its prices. Optional: a pharmacy that does not
+   * label packs simply receives without them.
+   */
+  barcodes: z.array(barcodeLabelSchema).max(500).default([]),
   note: z.string().trim().max(200).optional().default(''),
 });
 

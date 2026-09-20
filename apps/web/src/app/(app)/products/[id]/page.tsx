@@ -3,10 +3,10 @@
 import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pencil, Archive, Barcode, Printer, Image as ImageIcon } from 'lucide-react';
+import { Pencil, Archive, Barcode, Printer, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BatchRow } from '@pharmaos/shared';
-import { useProduct, useArchiveProduct, useGenerateBarcode, useProductAttachment } from '@/features/catalog/api';
+import { useProduct, useArchiveProduct, useGenerateBarcode, useAddBarcode, useRemoveBarcode, useProductAttachment } from '@/features/catalog/api';
 import { useBatches, useMovements } from '@/features/inventory/api';
 import { openDocument } from '@/features/documents/api';
 import { usePermission } from '@/features/auth/permissions';
@@ -14,7 +14,7 @@ import { errorMessage } from '@/lib/api-client';
 import { money, baseToDisplay, expiryLabel } from '@/lib/format';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle, KeyValue } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, KeyValue } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge, StatusBadge } from '@/components/ui/badge';
 import { Spinner, ErrorState, EmptyState } from '@/components/ui/states';
@@ -23,7 +23,7 @@ import { DataTable, type Column } from '@/components/ui/data-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FileUpload, AttachmentList } from '@/components/ui/file-upload';
 import { CustomFieldsView } from '@/components/ui/custom-fields-form';
-import { Select } from '@/components/ui/input';
+import { Input, Select } from '@/components/ui/input';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,6 +31,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const product = useProduct(id);
   const archive = useArchiveProduct();
   const genBarcode = useGenerateBarcode();
+  const addBarcode = useAddBarcode();
+  const removeBarcode = useRemoveBarcode();
+  const [newCode, setNewCode] = useState('');
+  const submitBarcode = () => {
+    const code = newCode.trim();
+    if (!code) return;
+    addBarcode.mutate(
+      { id: id, code, unitId: labelUnit || undefined },
+      { onSuccess: () => { toast.success(`Added ${code}`); setNewCode(''); }, onError: (e) => toast.error(errorMessage(e)) },
+    );
+  };
   const attach = useProductAttachment();
   const canEdit = usePermission('products.edit');
   const canArchive = usePermission('products.archive');
@@ -108,24 +119,36 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 </ul>
               </Card>
               <Card>
-                <CardHeader className="flex-row items-center justify-between">
-                  <CardTitle>Barcodes</CardTitle>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Barcodes</CardTitle>
+                    <CardDescription className="m-0">Codes printed on the pack</CardDescription>
+                  </div>
                   {canBarcode ? (
-                    <div className="flex items-center gap-2">
-                      <Select className="h-8 w-36" value={labelUnit} onChange={(e) => setLabelUnit(e.target.value)} aria-label="Unit for generated barcode">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Input
+                        className="h-8 w-48 font-mono"
+                        placeholder="Scan or type the code"
+                        value={newCode}
+                        onChange={(e) => setNewCode(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitBarcode(); } }}
+                        aria-label="Barcode to add"
+                      />
+                      <Select className="h-8 w-32" value={labelUnit} onChange={(e) => setLabelUnit(e.target.value)} aria-label="Unit this barcode is for">
                         <option value="">Any unit</option>
                         {p.units.map((u) => <option key={u.unitId} value={u.unitId}>{u.unitName}</option>)}
                       </Select>
-                      <Button variant="secondary" size="sm" loading={genBarcode.isPending} onClick={() => genBarcode.mutate({ id: p.id, unitId: labelUnit || undefined }, { onSuccess: () => toast.success('Internal barcode generated'), onError: (e) => toast.error(errorMessage(e)) })}><Barcode className="h-3.5 w-3.5" /> Generate</Button>
+                      <Button size="sm" loading={addBarcode.isPending} disabled={!newCode.trim()} onClick={submitBarcode}><Plus className="h-3.5 w-3.5" /> Add</Button>
+                      <Button variant="ghost" size="sm" loading={genBarcode.isPending} onClick={() => genBarcode.mutate({ id: p.id, unitId: labelUnit || undefined }, { onSuccess: () => toast.success('Internal barcode generated'), onError: (e) => toast.error(errorMessage(e)) })} title="Only for items with no printed barcode"><Barcode className="h-3.5 w-3.5" /> Generate one</Button>
                     </div>
                   ) : null}
                 </CardHeader>
-                {p.barcodes.length === 0 ? <EmptyState icon={Barcode} title="No barcodes" description="Add a manufacturer code or generate an internal one for labels." className="py-8" /> : (
+                {p.barcodes.length === 0 ? <EmptyState icon={Barcode} title="No barcodes" description="Type or scan the code printed on the pack. Pack-level labels are captured when you receive stock." className="py-8" /> : (
                   <ul className="divide-y divide-border">
                     {p.barcodes.map((b) => (
                       <li key={b.code} className="flex items-center justify-between px-5 py-2 text-sm">
                         <code className="font-mono">{b.code}</code>
-                        <span className="flex items-center gap-2 text-[12px] text-fg-subtle">{b.unitId ? p.units.find((u) => u.unitId === b.unitId)?.unitName : 'Any unit'}<Badge variant="neutral">{b.source}</Badge>{b.isPrimary ? <Badge variant="primary">Primary</Badge> : null}</span>
+                        <span className="flex items-center gap-2 text-[12px] text-fg-subtle">{b.unitId ? p.units.find((u) => u.unitId === b.unitId)?.unitName : 'Any unit'}<Badge variant="neutral">{b.source}</Badge>{b.isPrimary ? <Badge variant="primary">Primary</Badge> : null}{canBarcode ? <Button variant="ghost" size="sm" className="h-6 px-1.5 text-fg-subtle hover:text-danger-600" loading={removeBarcode.isPending} onClick={() => removeBarcode.mutate({ id: p.id, code: b.code }, { onSuccess: () => toast.success(`Removed ${b.code}`), onError: (e) => toast.error(errorMessage(e)) })} aria-label={`Remove barcode ${b.code}`}><Trash2 className="h-3.5 w-3.5" /></Button> : null}</span>
                       </li>
                     ))}
                   </ul>

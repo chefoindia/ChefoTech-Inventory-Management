@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import type { CreateProductInput, UpdateProductInput, ProductDto, ProductListQuery, ProductSearchHit, ProductUnitDto, AttachmentRef } from '@pharmaos/shared';
+import { ProductBatchModel } from '@/models/product-batch.model';
 import { ProductModel, normalizeName, buildSearchTokens, type ProductDoc } from '@/models/product.model';
 import { UnitModel, type UnitDoc } from '@/models/unit.model';
 import { CategoryModel, type CategoryDoc } from '@/models/category.model';
@@ -256,12 +257,23 @@ export async function removeAttachment(ctx: RequestContext, id: string, kind: 'i
 export async function searchProducts(ctx: RequestContext, q: string, limit: number, withStock: boolean): Promise<ProductSearchHit[]> {
   const norm = normalizeName(q);
   const words = norm.split(' ').filter(Boolean);
-  const [unitMap, byBarcode] = await Promise.all([
+  const term = q.trim();
+  // A scan is one token from the scanner's keyboard wedge; only then is a barcode lookup worth a query.
+  const barcodeShaped = term.length >= 3 && !term.includes(' ');
+  const [unitMap, byBarcode, labelProductIds] = await Promise.all([
     loadUnitMap(ctx),
-    ProductModel.find(orgFilter<ProductDoc>(ctx, { 'barcodes.code': q.trim(), status: 'active' })).limit(3).lean<ProductDoc[]>(),
+    ProductModel.find(orgFilter<ProductDoc>(ctx, { 'barcodes.code': term, status: 'active' })).limit(3).lean<ProductDoc[]>(),
+    barcodeShaped ? batchProductIdsForLabel(ctx, term) : Promise.resolve([] as Types.ObjectId[]),
   ]);
   const seen = new Set(byBarcode.map((p) => String(p._id)));
   let hits: ProductDoc[] = [...byBarcode];
+  // Batch LABEL ids (stuck on packs at receipt) resolve to their product too.
+  const missingLabelIds = labelProductIds.filter((id) => !seen.has(String(id)));
+  if (missingLabelIds.length) {
+    const labelled = await ProductModel.find(orgFilter<ProductDoc>(ctx, { _id: { $in: missingLabelIds }, status: 'active' })).limit(3).lean<ProductDoc[]>();
+    for (const p of labelled) seen.add(String(p._id));
+    hits = hits.concat(labelled);
+  }
   if (hits.length < limit && words.length) {
     const filter = orgFilter<ProductDoc>(ctx, {
       status: 'active',
@@ -298,11 +310,70 @@ export async function searchProducts(ctx: RequestContext, q: string, limit: numb
   });
 }
 
+/** Product ids of batches carrying this barcode label (labels are unique per organization). */
+async function batchProductIdsForLabel(ctx: RequestContext, code: string): Promise<Types.ObjectId[]> {
+  const rows = await ProductBatchModel.find(orgFilter(ctx, { barcodes: code }))
+    .select('productId')
+    .limit(3)
+    .lean<{ productId: Types.ObjectId }[]>();
+  return rows.map((r) => r.productId);
+}
+
+/**
+ * Resolves a scanned code. A batch LABEL wins over a manufacturer barcode, because the label
+ * identifies the exact pack in hand — so the caller gets that batch's own purchase price,
+ * selling price, MRP and expiry rather than the product's generic defaults.
+ */
 export async function findByBarcode(ctx: RequestContext, code: string) {
-  const hits = await searchProducts(ctx, code, 1, Boolean(ctx.outletId));
-  const exact = hits.find((h) => h.barcodes.some((b) => b.code === code.trim()));
+  const trimmed = code.trim();
+  const hits = await searchProducts(ctx, trimmed, 3, Boolean(ctx.outletId));
+  const batch = await ProductBatchModel.findOne(orgFilter(ctx, { barcodes: trimmed }))
+    .select('_id productId')
+    .lean<{ _id: Types.ObjectId; productId: Types.ObjectId }>();
+  if (batch) {
+    const hit = hits.find((h) => h.id === String(batch.productId));
+    if (hit) return { ...hit, matchedBatchId: String(batch._id) };
+  }
+  const exact = hits.find((h) => h.barcodes.some((b) => b.code === trimmed));
   if (!exact) throw new NotFoundError('Product with this barcode');
   return exact;
+}
+
+/**
+ * Records a barcode the user read off the pack (or off their own printed label). Manual entry is
+ * the normal path — generating a code only makes sense for items that carry no printed barcode.
+ */
+export async function addBarcode(ctx: RequestContext, id: string, input: { code: string; unitId?: string; isPrimary?: boolean }) {
+  const product = await findOrgDocOrThrow(ProductModel, ctx, id, 'Product');
+  const code = input.code.trim();
+  if (product.barcodes.some((b) => b.code === code)) throw new BusinessRuleError(`${code} is already on this product`);
+  const clash = await ProductModel.findOne(orgFilter(ctx, { 'barcodes.code': code, _id: { $ne: product._id } })).select('name').lean<{ name: string }>();
+  if (clash) throw new BusinessRuleError(`${code} already belongs to "${clash.name}"`);
+  const labelled = await ProductBatchModel.findOne(orgFilter(ctx, { barcodes: code })).select('batchNumber').lean<{ batchNumber: string }>();
+  if (labelled) throw new BusinessRuleError(`${code} is a pack label on batch ${labelled.batchNumber}`);
+  if (input.isPrimary) for (const b of product.barcodes) b.isPrimary = false;
+  product.barcodes.push({
+    code,
+    unitId: input.unitId ? new Types.ObjectId(input.unitId) : null,
+    isPrimary: input.isPrimary ?? product.barcodes.length === 0,
+    source: 'manufacturer',
+  });
+  product.searchTokens = buildSearchTokens(product.name, product.brandName ?? '', product.genericName ?? '', product.composition ?? '', product.manufacturer ?? '', ...product.barcodes.map((b) => b.code));
+  await product.save();
+  await audit(ctx, { action: 'product.barcodeAdded', entityType: 'Product', entityId: product._id, summary: `Added barcode ${code} to "${product.name}"` });
+  return getProduct(ctx, id);
+}
+
+export async function removeBarcode(ctx: RequestContext, id: string, code: string) {
+  const product = await findOrgDocOrThrow(ProductModel, ctx, id, 'Product');
+  const before = product.barcodes.length;
+  product.barcodes = product.barcodes.filter((b) => b.code !== code.trim()) as typeof product.barcodes;
+  if (product.barcodes.length === before) throw new NotFoundError('Barcode');
+  if (product.barcodes.length && !product.barcodes.some((b) => b.isPrimary)) product.barcodes[0]!.isPrimary = true;
+  product.searchTokens = buildSearchTokens(product.name, product.brandName ?? '', product.genericName ?? '', product.composition ?? '', product.manufacturer ?? '', ...product.barcodes.map((b) => b.code));
+  await product.save();
+  await audit(ctx, { action: 'product.barcodeRemoved', entityType: 'Product', entityId: product._id, summary: `Removed barcode ${code.trim()} from "${product.name}"` });
+  return getProduct(ctx, id);
 }
 
 /** Generates an internal EAN-13 style barcode with a valid check digit; prefix 2 = in-store use. */

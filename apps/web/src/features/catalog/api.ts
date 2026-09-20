@@ -69,6 +69,14 @@ export function useGenerateBarcode() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: ({ id, unitId }: { id: string; unitId?: string }) => api.post<ProductDto>(`/products/${id}/barcodes/generate`, { unitId }), onSuccess: () => invalidateProducts(qc) });
 }
+export function useAddBarcode() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: ({ id, code, unitId, isPrimary }: { id: string; code: string; unitId?: string; isPrimary?: boolean }) => api.post<ProductDto>(`/products/${id}/barcodes`, { code, unitId, isPrimary }), onSuccess: () => invalidateProducts(qc) });
+}
+export function useRemoveBarcode() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: ({ id, code }: { id: string; code: string }) => api.delete<ProductDto>(`/products/${id}/barcodes/${encodeURIComponent(code)}`), onSuccess: () => invalidateProducts(qc) });
+}
 export function useProductAttachment() {
   const qc = useQueryClient();
   return {

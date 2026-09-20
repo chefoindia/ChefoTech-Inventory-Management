@@ -62,6 +62,17 @@ export const productUnitSchema = z.object({
 });
 export type ProductUnitInput = z.infer<typeof productUnitSchema>;
 
+/**
+ * A single barcode LABEL id as printed on a physical pack. Shared by product barcodes
+ * (manufacturer EAN/UPC) and batch labels captured when goods are received.
+ */
+export const barcodeLabelSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(48)
+  .regex(/^[A-Za-z0-9\-_.]+$/, 'Barcode may contain letters, numbers, - _ .');
+
 export const barcodeSchema = z.object({
   code: z
     .string()

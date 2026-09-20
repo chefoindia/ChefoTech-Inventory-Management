@@ -11,6 +11,7 @@ import {
   productSearchQuerySchema,
   addStarterProductsSchema,
   attachmentRefSchema,
+  barcodeLabelSchema,
   idParamSchema,
   objectIdSchema,
   type CreateCategoryInput,
@@ -109,6 +110,12 @@ productsRouter.post('/:id/archive', requirePermission('products.archive'), valid
   noContent(res);
 });
 
+productsRouter.post('/:id/barcodes', requirePermission('products.manageBarcodes'), validate({ params: idParamSchema, body: z.object({ code: barcodeLabelSchema, unitId: objectIdSchema.optional(), isPrimary: z.boolean().optional() }) }), async (req, res) => {
+  ok(res, await products.addBarcode(ctxOf(req), params<{ id: string }>(req).id, body<{ code: string; unitId?: string; isPrimary?: boolean }>(req)));
+});
+productsRouter.delete('/:id/barcodes/:code', requirePermission('products.manageBarcodes'), validate({ params: idParamSchema.extend({ code: barcodeLabelSchema }) }), async (req, res) => {
+  ok(res, await products.removeBarcode(ctxOf(req), params<{ id: string; code: string }>(req).id, params<{ id: string; code: string }>(req).code));
+});
 productsRouter.post('/:id/barcodes/generate', requirePermission('products.manageBarcodes'), validate({ params: idParamSchema, body: z.object({ unitId: objectIdSchema.optional() }) }), async (req, res) => {
   ok(res, await products.generateInternalBarcode(ctxOf(req), params<{ id: string }>(req).id, body<{ unitId?: string }>(req).unitId));
 });

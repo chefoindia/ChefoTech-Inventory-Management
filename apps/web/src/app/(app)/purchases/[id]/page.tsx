@@ -143,11 +143,49 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ id: s
   );
 }
 
+/**
+ * Captures one barcode label per physical pack arriving on a line — scan or type, Enter adds.
+ * Keyboard-wedge scanners send the code followed by Enter, so scanning seven strips is seven
+ * scans with no clicking. Labels are optional: a pharmacy that does not label packs just
+ * receives without them.
+ */
+function BarcodeCapture({ productName, expected, codes, onChange }: { productName: string; expected: number; codes: string[]; onChange: (codes: string[]) => void }) {
+  const [draft, setDraft] = useState('');
+  const add = (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+    if (codes.includes(code)) { toast.error(`${code} is already scanned for ${productName}`); setDraft(''); return; }
+    onChange([...codes, code]);
+    setDraft('');
+  };
+  const done = codes.length >= expected;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] uppercase tracking-wide text-fg-subtle">Pack barcodes</span>
+      <Input
+        className="h-8 w-56 font-mono"
+        placeholder={`Scan a label for ${productName}`}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(draft); } }}
+        aria-label={`Barcode label for ${productName}`}
+      />
+      <Button variant="secondary" size="sm" onClick={() => add(draft)} disabled={!draft.trim()}>Add</Button>
+      <span className={`text-[12px] ${done ? 'text-success-700' : 'text-fg-subtle'}`}>{codes.length} of {expected} labelled{done ? '' : ' · optional'}</span>
+      {codes.map((c) => (
+        <button key={c} type="button" onClick={() => onChange(codes.filter((x) => x !== c))} className="inline-flex items-center gap-1 rounded-full border border-border bg-bg px-2 py-0.5 font-mono text-[11px] hover:border-danger-400 hover:text-danger-600" title="Remove this label">
+          {c} <span aria-hidden>×</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: PurchaseDto; open: boolean; onOpenChange: (o: boolean) => void; onDone: (id: string) => void }) {
   const create = useCreateGrn();
   const canApprove = usePermission('purchases.approveGrn');
   const pendingLines = purchase.lines.filter((l) => l.receivedBase + l.damagedBase < l.qtyBase);
-  const [rows, setRows] = useState<Record<string, { receivedQty: number; freeQty: number; damagedQty: number; batchNumber: string; expiryDate: string; mrpMinor: number | null; sellingPriceMinor: number | null; note: string }>>({});
+  const [rows, setRows] = useState<Record<string, { receivedQty: number; freeQty: number; damagedQty: number; batchNumber: string; expiryDate: string; mrpMinor: number | null; sellingPriceMinor: number | null; barcodes: string[]; note: string }>>({});
   const [receivedDate, setReceivedDate] = useState(dateInput(new Date()));
   const [confirm, setConfirm] = useState(true);
   const [notes, setNotes] = useState('');
@@ -158,19 +196,19 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
       const remainingUnits = (l.qtyBase - l.receivedBase - l.damagedBase) / l.factorToBase;
       // free goods are counted separately from the paid quantity; assume they arrive with the first receipt
       const free = l.receivedBase === 0 ? l.freeQty : 0;
-      r[l.lineId] = { receivedQty: Math.max(remainingUnits, 0), freeQty: free, damagedQty: 0, batchNumber: l.batchNumber, expiryDate: dateInput(l.expiryDate), mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, note: '' };
+      r[l.lineId] = { receivedQty: Math.max(remainingUnits, 0), freeQty: free, damagedQty: 0, batchNumber: l.batchNumber, expiryDate: dateInput(l.expiryDate), mrpMinor: l.mrpMinor, sellingPriceMinor: l.sellingPriceMinor, barcodes: [], note: '' };
     }
     setRows(r);
     setKey(newIdempotencyKey());
   };
   const submit = () => {
-    const lines = Object.entries(rows).filter(([, r]) => r.receivedQty > 0 || r.freeQty > 0 || r.damagedQty > 0).map(([purchaseLineId, r]) => ({ purchaseLineId, receivedQty: r.receivedQty, freeQty: r.freeQty, damagedQty: r.damagedQty, batchNumber: r.batchNumber || undefined, expiryDate: r.expiryDate ? new Date(r.expiryDate) : undefined, mrpMinor: r.mrpMinor ?? undefined, sellingPriceMinor: r.sellingPriceMinor ?? undefined, note: r.note }));
+    const lines = Object.entries(rows).filter(([, r]) => r.receivedQty > 0 || r.freeQty > 0 || r.damagedQty > 0).map(([purchaseLineId, r]) => ({ purchaseLineId, receivedQty: r.receivedQty, freeQty: r.freeQty, damagedQty: r.damagedQty, batchNumber: r.batchNumber || undefined, expiryDate: r.expiryDate ? new Date(r.expiryDate) : undefined, mrpMinor: r.mrpMinor ?? undefined, sellingPriceMinor: r.sellingPriceMinor ?? undefined, barcodes: r.barcodes, note: r.note }));
     if (!lines.length) return toast.error('Enter a received quantity on at least one line.');
     create.mutate({ idempotencyKey: key, input: { purchaseId: purchase.id, receivedDate: new Date(receivedDate), lines, attachments: [], notes, confirm } }, { onSuccess: (g) => { toast.success(`${g.number} ${g.status === 'confirmed' ? 'confirmed, stock added' : 'saved as draft'}`); onOpenChange(false); onDone(g.id); }, onError: (e) => toast.error(errorMessage(e)) });
   };
   return (
     <Dialog open={open} onOpenChange={(o) => { if (o) init(); if (!create.isPending) onOpenChange(o); }}>
-      <DialogContent title={`Receive goods · ${purchase.number}`} description="Check quantities against the physical delivery. Short or damaged items stay pending for a later receipt." size="xl">
+      <DialogContent title={`Receive goods · ${purchase.number}`} description="Check quantities against the physical delivery, then scan a barcode label for each pack so it can be traced back to this batch’s prices and expiry. Short or damaged items stay pending for a later receipt." size="xl">
         <FormGrid className="sm:grid-cols-3">
           <FormField info="The date the goods actually arrived, which may be later than the invoice date. Stock is added as of this date." label="Received on" htmlFor="grn-date"><Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} /></FormField>
           <FormField info="Anything about this receipt worth remembering, for example a short supply to follow up." label="Notes" htmlFor="grn-notes" className="sm:col-span-2"><Textarea className="min-h-[38px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></FormField>
@@ -194,6 +232,24 @@ function GrnDialog({ purchase, open, onOpenChange, onDone }: { purchase: Purchas
                     <td className="py-1.5 pr-2"><Input type="date" className="h-8 w-36" value={r.expiryDate} onChange={(e) => set({ expiryDate: e.target.value })} aria-label="Expiry" /></td>
                     <td className="py-1.5 pr-2"><MoneyInput className="h-8 w-24" value={r.mrpMinor} onChange={(v) => set({ mrpMinor: v })} aria-label="MRP" /></td>
                     <td className="py-1.5 pr-2"><MoneyInput className="h-8 w-24" value={r.sellingPriceMinor} onChange={(v) => set({ sellingPriceMinor: v })} aria-label="Selling price" /></td>
+                  </tr>
+                );
+              })}
+              {pendingLines.map((l) => {
+                const r = rows[l.lineId];
+                if (!r) return null;
+                const packs = (r.receivedQty || 0) + (r.freeQty || 0);
+                if (packs <= 0) return null;
+                return (
+                  <tr key={`${l.lineId}-codes`} className="bg-bg-subtle/40">
+                    <td colSpan={9} className="px-2 py-2">
+                      <BarcodeCapture
+                        productName={l.productName}
+                        expected={packs}
+                        codes={r.barcodes}
+                        onChange={(codes) => setRows((x) => ({ ...x, [l.lineId]: { ...r, barcodes: codes } }))}
+                      />
+                    </td>
                   </tr>
                 );
               })}
