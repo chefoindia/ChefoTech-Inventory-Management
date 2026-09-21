@@ -15,6 +15,7 @@ import {
   BarChart3,
   Bell,
   Settings,
+  ChevronDown,
   ChevronsUpDown,
   Store,
   LogOut,
@@ -48,16 +49,26 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   permission?: string | string[];
   badge?: 'unread';
+  /** When present the item is a collapsible group whose href is only used for active state. */
+  children?: NavItem[];
 }
 
 const NAV: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Sales & POS', href: '/sales', icon: ShoppingCart, permission: 'sales.view' },
-  { label: 'Purchases', href: '/purchases', icon: Truck, permission: 'purchases.view' },
-  { label: 'Products', href: '/products', icon: Pill, permission: 'products.view' },
-  { label: 'Inventory', href: '/inventory', icon: Boxes, permission: 'inventory.view' },
+  {
+    label: 'Stock & buying',
+    href: '/products',
+    icon: Boxes,
+    permission: ['products.view', 'inventory.view', 'purchases.view', 'suppliers.view'],
+    children: [
+      { label: 'Products', href: '/products', icon: Pill, permission: 'products.view' },
+      { label: 'Inventory', href: '/inventory', icon: Boxes, permission: 'inventory.view' },
+      { label: 'Purchases', href: '/purchases', icon: Truck, permission: 'purchases.view' },
+      { label: 'Suppliers', href: '/suppliers', icon: Building2, permission: 'suppliers.view' },
+    ],
+  },
   { label: 'Customers', href: '/customers', icon: Users, permission: 'customers.view' },
-  { label: 'Suppliers', href: '/suppliers', icon: Building2, permission: 'suppliers.view' },
   { label: 'Prescriptions', href: '/prescriptions', icon: FileText, permission: 'prescriptions.view' },
   { label: 'Reports', href: '/reports', icon: BarChart3, permission: 'reports.view' },
   { label: 'Notifications', href: '/notifications', icon: Bell, permission: 'notifications.view', badge: 'unread' },
@@ -86,6 +97,48 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
       <span className="flex-1">{item.label}</span>
       {item.badge === 'unread' ? <UnreadBadge /> : null}
     </Link>
+  );
+}
+
+/**
+ * A collapsible nav group. It starts open when the current page lives inside it, so a reload
+ * never hides where you are, and the open/closed choice then persists for the session.
+ */
+function NavGroup({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const allowed = usePermission(item.permission ?? [], 'any') || !item.permission;
+  const children = item.children ?? [];
+  const inside = children.some((c) => pathname === c.href || pathname.startsWith(c.href + '/'));
+  const [open, setOpen] = useState(inside);
+  useEffect(() => {
+    if (inside) setOpen(true);
+  }, [inside]);
+  const Icon = item.icon;
+  if (!allowed) return null;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          'flex h-9 w-full items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm font-medium transition-colors',
+          inside && !open ? 'bg-primary-50 text-primary-800' : 'text-fg-muted hover:bg-surface-subtle hover:text-fg',
+        )}
+      >
+        <Icon className={cn('h-4 w-4', inside ? 'text-primary-700' : 'text-fg-subtle')} />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown className={cn('h-3.5 w-3.5 text-fg-faint transition-transform', open && 'rotate-180')} />
+      </button>
+      {open ? (
+        <div className="mt-0.5 space-y-0.5 border-l border-border pl-3 ml-4">
+          {children.map((c) => (
+            <NavLink key={c.href} item={c} onNavigate={onNavigate} />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -231,7 +284,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto scroll-thin p-3" aria-label="Main">
         {NAV.map((item) => (
-          <NavLink key={item.href} item={item} onNavigate={() => setMobileOpen(false)} />
+          item.children
+            ? <NavGroup key={item.label} item={item} onNavigate={() => setMobileOpen(false)} />
+            : <NavLink key={item.href} item={item} onNavigate={() => setMobileOpen(false)} />
         ))}
       </nav>
       <div className="border-t border-border p-3 text-[12px] text-fg-subtle">

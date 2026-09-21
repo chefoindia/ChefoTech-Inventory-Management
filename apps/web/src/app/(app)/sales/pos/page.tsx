@@ -344,7 +344,7 @@ export default function PosPage() {
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
         {/* left: search + cart */}
         <div className="flex min-w-0 flex-col border-r border-border">
           <div className="p-3"><ProductSearch onPick={addProduct} inputRef={searchRef} /></div>
@@ -356,7 +356,7 @@ export default function PosPage() {
                 <p className="mt-1 text-[12px]"><Kbd>F2</Kbd> search · <Kbd>F8</Kbd> payment · <Kbd>F9</Kbd> hold · <Kbd>F12</Kbd> complete</p>
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[820px] text-sm">
                 <thead className="bg-surface-muted text-left text-[12px] font-medium uppercase tracking-wide text-fg-subtle">
                   <tr>
                     <th className="px-3 py-2"><ColumnHint title="Item">The product being sold. Search by brand, salt or barcode.</ColumnHint></th>
